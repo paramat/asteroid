@@ -1,0 +1,4 @@
+-- asteroid 0.1.0 by paramat.
+-- For latest stable Minetest back to 0.4.3
+-- Depends default
+-- Licenses: Code WTFPL. Textures CC BY-SA, stone by Perttu Ahola, snow and ice by Splizard.
