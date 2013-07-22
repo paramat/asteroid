@@ -1,32 +1,35 @@
--- asteroid 0.1.0 by paramat
+-- asteroid 0.1.1 by paramat
 -- For latest stable Minetest back to 0.4.3
 -- Depends default
--- Licenses: Code WTFPL. Textures CC BY-SA, stone by Perttu Ahola, snow and ice by Splizard
+-- Licenses: Code WTFPL. Textures CC BY-SA: stone by celeron55 (recoloured), sand by VanessaE (recoloured), snow and ice by Splizard.
 
 -- Variables
 
 local ONGEN = true -- (true / false) Enable / disable generation.
-local YMIN = 13000 -- 
-local YMAX = 14000 -- 
-local ASCOTH = 0.8 --  -- Asteroid / comet nucleus noise threshold. Controls size.
-local SQUFAC = 2 --  -- Vertical squash factor.
+local YMIN = 13000 -- Approximate realm bottom.
+local YMAX = 14000 -- Approximate realm top.
+local XMIN = -16000 -- Approximate realm edges.
+local XMAX = 16000
+local ZMIN = -16000
+local ZMAX = 16000
+local ASCOTH = 0.8 -- 0.8 -- Asteroid / comet nucleus noise threshold. Controls size.
+local SQUFAC = 2 -- 2 -- Vertical squash factor.
 
-local FISOFF = 0.01 --  -- Fissure noise offset. Controls size of fissures and amount / size of fissure entrances at surface.
-local FISEXP = 0.3 --  -- Fissure expansion rate under surface.
+local FISOFF = 0.01 -- 0.01 -- Fissure noise offset. Controls size of fissures and amount / size of fissure entrances at surface.
+local FISEXP = 0.4 -- 0.4 -- Fissure expansion rate under surface.
 
-local MESCHA = 23*23*23 --  -- 1/x chance of mese.
-local IROCHA = 3*3*3 --  -- 1/x chance of iron ore in asteroid.
-local STOCHA = 5*5*5 --  -- 1/x chance of stone in comet.
+local MESCHA = 23*23*23 -- 23*23*23 -- 1/x chance of mese.
+local IROCHA = 5*5*5 -- 5*5*5 -- 1/x chance of iron ore in asteroid.
 
-local DUSAMP = 0.1 --  -- Dust depth amplitude.
-local DUSRAN = 0.01 --  -- Dust depth randomness.
-local DUSOFF = 0 --  -- Dust depth offset.
+local DUSAMP = 0.1 -- 0.1 -- Dust depth amplitude and depth of ores.
+local DUSRAN = 0.01 -- 0.01 -- Dust depth randomness.
+local DUSOFF = 0 -- 0 -- Dust depth offset.
 
-local SNOAMP = 0.1 --  -- Snow depth amplitude.
-local SNORAN = 0.01 --  -- Snow depth randomness.
-local SNOOFF = 0 --  -- Snow depth offset.
+local SNOAMP = 0.1 -- 0.1 -- Snow depth amplitude.
+local SNORAN = 0.01 -- 0.01 -- Snow depth randomness.
+local SNOOFF = 0 -- 0 -- Snow depth offset.
 
-local ATMDEP = 0.3 --  -- Comet atmosphere depth.
+local ATMDEP = 0.3 -- 0.3 -- Comet atmosphere depth.
 
 local PROG = true
 
@@ -202,7 +205,9 @@ end)
 
 if ONGEN then
 	minetest.register_on_generated(function(minp, maxp, seed)
-		if minp.y < YMIN or maxp.y > YMAX then
+		if minp.x < XMIN or maxp.x > XMAX
+		or minp.y < YMIN or maxp.y > YMAX
+		or minp.z < ZMIN or maxp.z > ZMAX then
 			return
 		end
 		local x1 = maxp.x
@@ -221,21 +226,23 @@ if ONGEN then
 			end
 			for z = z0, z1 do -- for each column do
 				for y = y0, y1 do -- for each node do
-					local comet = false
 					local noise1 = perlin1:get3d({x=x,y=y*SQUFAC,z=z})
-					if noise1 < 0 then comet = true end
 					local noise1abs = math.abs(noise1) 
 					if noise1abs > ASCOTH then -- if below surface then
-						local noise1dep = noise1abs - ASCOTH -- noise1dep zero at surface
+						local comet = false
+						if noise1 < 0 then comet = true end
 						local noise3 = perlin3:get3d({x=x,y=y,z=z})
+						local noise1dep = noise1abs - ASCOTH -- noise1dep zero at surface
 						if math.abs(noise3) - noise1dep * FISEXP - FISOFF > 0 then -- if no cave then
+							local ore = false
+							if noise1dep > DUSAMP then ore = true end
 							local noise2 = perlin2:get3d({x=x,y=y,z=z})
 							if noise1 > 0 then -- if asteroid then
 								local thrsto = noise2 * DUSAMP + DUSOFF + math.random() * DUSRAN
 								if noise1dep >= thrsto then -- if stone then
-									if math.random(MESCHA) == 2 then
+									if ore and math.random(MESCHA) == 2 then
 										env:add_node({x=x,y=y,z=z},{name="default:mese"})
-									elseif math.random(IROCHA) == 2 then
+									elseif ore and math.random(IROCHA) == 2 then
 										env:add_node({x=x,y=y,z=z},{name="asteroid:ironore"})
 									else
 										env:add_node({x=x,y=y,z=z},{name="asteroid:stone"})
@@ -246,10 +253,8 @@ if ONGEN then
 							else -- comet
 								local thrice = noise2 * SNOAMP + SNOOFF + math.random() * SNORAN
 								if noise1dep >= thrice then -- if ice then
-									if math.random(MESCHA) == 2 then
+									if ore and math.random(MESCHA) == 2 then
 										env:add_node({x=x,y=y,z=z},{name="default:mese"})
-									elseif math.random(STOCHA) == 2 then
-										env:add_node({x=x,y=y,z=z},{name="asteroid:stone"})
 									else
 										env:add_node({x=x,y=y,z=z},{name="asteroid:waterice"})
 									end
