@@ -1,55 +1,67 @@
--- asteroid 0.1.1 by paramat
--- For latest stable Minetest back to 0.4.3
+-- asteroid 0.2.0 by paramat
+-- For latest stable Minetest back to 0.4.7 stable
 -- Depends default
--- Licenses: Code WTFPL. Textures CC BY-SA: stone by celeron55 (recoloured), sand by VanessaE (recoloured), snow and ice by Splizard.
+-- Licenses: code WTFPL, textures CC BY SA
 
 -- Variables
 
-local ONGEN = true -- (true / false) Enable / disable generation.
+local ONGEN = true -- (true / false) Realm generation.
+local PROG = true -- Print generation progress to terminal.
+
 local YMIN = 13000 -- Approximate realm bottom.
 local YMAX = 14000 -- Approximate realm top.
 local XMIN = -16000 -- Approximate realm edges.
 local XMAX = 16000
 local ZMIN = -16000
 local ZMAX = 16000
-local ASCOTH = 0.8 -- 0.8 -- Asteroid / comet nucleus noise threshold. Controls size.
-local SQUFAC = 2 -- 2 -- Vertical squash factor.
 
-local FISOFF = 0.01 -- 0.01 -- Fissure noise offset. Controls size of fissures and amount / size of fissure entrances at surface.
-local FISEXP = 0.4 -- 0.4 -- Fissure expansion rate under surface.
+local ASCOTAV = 0.8 --  -- Asteroid / comet nucleus noise threshold average.
+local ASCOTAMP = 0.1 --  -- Asteroid / comet nucleus noise threshold amplitude.
+local PERS1AV = 0.5 --  -- Persistence1 average.
+local PERS1AMP = 0.1 --  -- Persistence1 amplitude.
 
-local MESCHA = 23*23*23 -- 23*23*23 -- 1/x chance of mese.
-local IROCHA = 5*5*5 -- 5*5*5 -- 1/x chance of iron ore in asteroid.
+local SQUFAC = 2 --  -- Vertical squash factor.
+local STOT = 0.05 --  -- Asteroid stone depth.
+local ICET = 0.05 --  -- Comet ice depth.
+local ATMODEP = 0.2 --  -- Comet atmosphere depth.
 
-local DUSAMP = 0.1 -- 0.1 -- Dust depth amplitude and depth of ores.
-local DUSRAN = 0.01 -- 0.01 -- Dust depth randomness.
-local DUSOFF = 0 -- 0 -- Dust depth offset.
+local FISTS = 0.01 -- 0.01 -- Fissure noise threshold at surface. Controls size of fissures and amount / size of fissure entrances at surface.
+local FISEXP = 0.3 -- 0.3 -- Fissure expansion rate under surface.
 
-local SNOAMP = 0.1 -- 0.1 -- Snow depth amplitude.
-local SNORAN = 0.01 -- 0.01 -- Snow depth randomness.
-local SNOOFF = 0 -- 0 -- Snow depth offset.
+local IROCHA = 5*5*5 --  -- .
+local RARCHA = 11*11*11 --  -- .
 
-local ATMDEP = 0.3 -- 0.3 -- Comet atmosphere depth.
-
-local PROG = true
 
 -- 3D Perlin noise 1 for surfaces
-local SEEDDIFF1 = 46894681234
-local OCTAVES1 = 6 -- 6
-local PERSISTENCE1 = 0.5 -- 0.5
-local SCALE1 = 256 -- 256
+local perl1 = {
+	SEED1 = -92929422,
+	OCTA1 = 6, --
+	SCAL1 = 256, --
+}
 
--- 3D Perlin noise 2 for dust depth
-local SEEDDIFF2 = 21532
-local OCTAVES2 = 4 -- 4
-local PERSISTENCE2 = 0.6 -- 0.6
-local SCALE2 = 128 -- 128
+-- 3D Perlin noise 2 for varying persistence of noise1
+local perl2 = {
+	SEED2 = 595668,
+	OCTA2 = 1, -- 
+	PERS2 = 0.5, -- 
+	SCAL2 = 1024, -- 
+}
 
 -- 3D Perlin noise 3 for fissures
-local SEEDDIFF3 = 6398643
-local OCTAVES3 = 4 -- 4
-local PERSISTENCE3 = 0.5 -- 0.5
-local SCALE3 = 64 -- 64
+local perl3 = {
+	SEED3 = -188881,
+	OCTA3 = 4, -- 
+	PERS3 = 0.5, -- 
+	SCAL3 = 64, -- 
+}
+
+-- 3D Perlin noise 4 for varying 'ascoth': size and proximity
+local perl4 = {
+	SEED4 = 1000760700090,
+	OCTA4 = 1, -- 
+	PERS4 = 0.5, -- 
+	SCAL4 = 512, -- 
+}
 
 -- Stuff
 
@@ -72,8 +84,8 @@ minetest.register_node("asteroid:ironore", {
 	sounds = default.node_sound_stone_defaults(),
 })
 
-minetest.register_node("asteroid:dust", {
-	description = "AST Dust",
+minetest.register_node("asteroid:regolith", {
+	description = "AST Regolith",
 	tiles = {"asteroid_dust.png"},
 	groups = {crumbly=3},
 	sounds = default.node_sound_dirt_defaults({
@@ -216,57 +228,56 @@ if ONGEN then
 		local x0 = minp.x
 		local y0 = minp.y
 		local z0 = minp.z
-		local env = minetest.env
-		local perlin1 = env:get_perlin(SEEDDIFF1, OCTAVES1, PERSISTENCE1, SCALE1)
-		local perlin2 = env:get_perlin(SEEDDIFF2, OCTAVES2, PERSISTENCE2, SCALE2)
-		local perlin3 = env:get_perlin(SEEDDIFF3, OCTAVES3, PERSISTENCE3, SCALE3)
+		local perlin2 = minetest.get_perlin(perl2.SEED2, perl2.OCTA2, perl2.PERS2, perl2.SCAL2)
+		local perlin3 = minetest.get_perlin(perl3.SEED3, perl3.OCTA3, perl3.PERS3, perl3.SCAL3)
+		local perlin4 = minetest.get_perlin(perl4.SEED4, perl4.OCTA4, perl4.PERS4, perl4.SCAL4)
 		for x = x0, x1 do -- for each plane do
 			if PROG then
-				print ("[asteroid] plane "..x - x0.." chunk ("..minp.x.." "..minp.y.." "..minp.z..")")
+				print ("[asteroid] "..x - x0.." ("..minp.x.." "..minp.y.." "..minp.z..")")
 			end
 			for z = z0, z1 do -- for each column do
 				for y = y0, y1 do -- for each node do
+					local noise2 = perlin2:get3d({x=x,y=y,z=z})
+					local pers1 = PERS1AV + noise2 * PERS1AMP
+					local perlin1 = minetest.get_perlin(perl1.SEED1, perl1.OCTA1, pers1, perl1.SCAL1)
 					local noise1 = perlin1:get3d({x=x,y=y*SQUFAC,z=z})
 					local noise1abs = math.abs(noise1) 
-					if noise1abs > ASCOTH then -- if below surface then
+					local noise4 = perlin4:get3d({x=x,y=y,z=z})
+					local ascot = ASCOTAV + noise4 * ASCOTAMP
+					if noise1abs > ascot then -- if below surface then
 						local comet = false
 						if noise1 < 0 then comet = true end
 						local noise3 = perlin3:get3d({x=x,y=y,z=z})
-						local noise1dep = noise1abs - ASCOTH -- noise1dep zero at surface
-						if math.abs(noise3) - noise1dep * FISEXP - FISOFF > 0 then -- if no cave then
-							local ore = false
-							if noise1dep > DUSAMP then ore = true end
-							local noise2 = perlin2:get3d({x=x,y=y,z=z})
+						local noise1dep = noise1abs - ascot -- noise1dep zero at surface
+						if math.abs(noise3) > FISTS + noise1dep * FISEXP then -- if no cave then
 							if noise1 > 0 then -- if asteroid then
-								local thrsto = noise2 * DUSAMP + DUSOFF + math.random() * DUSRAN
-								if noise1dep >= thrsto then -- if stone then
-									if ore and math.random(MESCHA) == 2 then
-										env:add_node({x=x,y=y,z=z},{name="default:mese"})
-									elseif ore and math.random(IROCHA) == 2 then
-										env:add_node({x=x,y=y,z=z},{name="asteroid:ironore"})
+								if noise1dep >= STOT then -- if stone then
+									if math.random(IROCHA) == 2 then
+										minetest.add_node({x=x,y=y,z=z},{name="asteroid:ironore"})
+									elseif math.random(RARCHA) == 2 then
+										minetest.add_node({x=x,y=y,z=z},{name="default:mese"})
 									else
-										env:add_node({x=x,y=y,z=z},{name="asteroid:stone"})
+										minetest.add_node({x=x,y=y,z=z},{name="asteroid:stone"})
 									end
 								else -- dust
-									env:add_node({x=x,y=y,z=z},{name="asteroid:dust"})
+									minetest.add_node({x=x,y=y,z=z},{name="asteroid:regolith"})
 								end
 							else -- comet
-								local thrice = noise2 * SNOAMP + SNOOFF + math.random() * SNORAN
-								if noise1dep >= thrice then -- if ice then
-									if ore and math.random(MESCHA) == 2 then
-										env:add_node({x=x,y=y,z=z},{name="default:mese"})
+								if noise1dep >= ICET then -- if ice then
+									if math.random(RARCHA) == 2 then
+										minetest.add_node({x=x,y=y,z=z},{name="default:mese"})
 									else
-										env:add_node({x=x,y=y,z=z},{name="asteroid:waterice"})
+										minetest.add_node({x=x,y=y,z=z},{name="asteroid:waterice"})
 									end
 								else -- snow node
-									env:add_node({x=x,y=y,z=z},{name="asteroid:snode"})
+									minetest.add_node({x=x,y=y,z=z},{name="asteroid:snode"})
 								end
 							end
 						elseif comet then -- cave, if comet then add comet atmosphere
-							env:add_node({x=x,y=y,z=z},{name="asteroid:atmos"})
+							minetest.add_node({x=x,y=y,z=z},{name="asteroid:atmos"})
 						end
-					elseif noise1 < -ASCOTH + ATMDEP then -- if comet atmosphere
-						env:add_node({x=x,y=y,z=z},{name="asteroid:atmos"})
+					elseif noise1 < -ascot + ATMODEP then -- if comet atmosphere
+						minetest.add_node({x=x,y=y,z=z},{name="asteroid:atmos"})
 					end
 				end
 			end
