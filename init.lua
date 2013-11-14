@@ -1,4 +1,4 @@
--- asteroid 0.2.0 by paramat
+-- asteroid 0.3.0 by paramat
 -- For latest stable Minetest back to 0.4.7 stable
 -- Depends default
 -- Licenses: code WTFPL, textures CC BY SA
@@ -15,14 +15,13 @@ local XMAX = 16000
 local ZMIN = -16000
 local ZMAX = 16000
 
-local ASCOTAV = 0.8 --  -- Asteroid / comet nucleus noise threshold average.
-local ASCOTAMP = 0.1 --  -- Asteroid / comet nucleus noise threshold amplitude.
-local PERS1AV = 0.5 --  -- Persistence1 average.
-local PERS1AMP = 0.1 --  -- Persistence1 amplitude.
-
+local ASCOT = 1.0 --  -- Large asteroid / comet nucleus noise threshold.
+local PERSAV = 0.6 --  -- Persistence1 average.
+local PERSAMP = 0.1 --  -- Persistence1 amplitude.
+local SASCOT = 1.0 --  -- Small asteroid / comet nucleus noise threshold.
 local SQUFAC = 2 --  -- Vertical squash factor.
 
-local LAVAT = 0.5 --  -- Asteroid lava threshold.
+local LAVAT = 0.6 --  -- Asteroid lava threshold.
 local STOT = 0.1 --  -- Asteroid stone threshold.
 local COBT = 0.05 --  -- Asteroid cobble threshold.
 local GRAT = 0.02 --  -- Asteroid gravel threshold.
@@ -33,9 +32,9 @@ local ATMOT = -0.2 --  -- Comet atmosphere threshold.
 local FISTS = 0.01 -- 0.01 -- Fissure noise threshold at surface. Controls size of fissures and amount / size of fissure entrances at surface.
 local FISEXP = 0.3 -- 0.3 -- Fissure expansion rate under surface.
 
-local ORECHA = 5*5*5 --  -- Ore 1/x chance per stone node (iron, mese ore, copper, gold, diamond).
+local ORECHA = 4*4*4 --  -- Ore 1/x chance per stone node (iron, mese ore, copper, gold, diamond).
 
--- 3D Perlin noise 1 for surfaces
+-- 3D Perlin noise 1 for large structures
 local perl1 = {
 	SEED1 = -92929422,
 	OCTA1 = 5, --
@@ -58,12 +57,12 @@ local perl3 = {
 	SCAL3 = 64, -- 
 }
 
--- 3D Perlin noise 4 for varying 'ascoth': size and proximity
+-- 3D Perlin noise 4 for small structures
 local perl4 = {
 	SEED4 = 1000760700090,
-	OCTA4 = 2, -- 
+	OCTA4 = 4, -- 
 	PERS4 = 0.6, -- 
-	SCAL4 = 512, -- 
+	SCAL4 = 128, -- 
 }
 
 -- 3D Perlin5 for ore selection
@@ -78,213 +77,9 @@ local perl5 = {
 
 asteroid = {}
 
--- Nodes
+dofile(minetest.get_modpath("asteroid").."/nodes.lua")
 
-minetest.register_node("asteroid:lava", {
-	description = "AST lava",
-	inventory_image = minetest.inventorycube("asteroid_lava.png"),
-	drawtype = "liquid",
-	tiles = {
-		{name="asteroid_lava_source_animated.png", animation={type="vertical_frames", aspect_w=16, aspect_h=16, length=3.0}}
-	},
-	paramtype = "light",
-	light_source = LIGHT_MAX - 1,
-	walkable = false,
-	pointable = false,
-	diggable = false,
-	buildable_to = true,
-	liquidtype = "source",
-	liquid_alternative_flowing = "air",
-	liquid_alternative_source = "default:lava_source",
-	damage_per_second = 4*2,
-	post_effect_color = {a=192, r=255, g=64, b=0},
-	groups = {lava=3, liquid=2, hot=3, igniter=1},
-})
-
-minetest.register_node("asteroid:stone", {
-	description = "AST Stone",
-	tiles = {"asteroid_stone.png"},
-	groups = {cracky=3},
-	sounds = default.node_sound_stone_defaults(),
-})
-
-minetest.register_node("asteroid:cobble", {
-	description = "AST Cobble",
-	tiles = {"asteroid_cobble.png"},
-	groups = {cracky=3},
-	sounds = default.node_sound_stone_defaults(),
-})
-
-minetest.register_node("asteroid:gravel", {
-	description = "AST gravel",
-	tiles = {"asteroid_gravel.png"},
-	groups = {crumbly=2},
-	sounds = default.node_sound_dirt_defaults({
-		footstep = {name="default_gravel_footstep", gain=0.2},
-	}),
-})
-
-minetest.register_node("asteroid:dust", {
-	description = "AST Dust",
-	tiles = {"asteroid_dust.png"},
-	groups = {crumbly=3},
-	sounds = default.node_sound_dirt_defaults({
-		footstep = {name="default_gravel_footstep", gain=0.1},
-	}),
-})
-
-minetest.register_node("asteroid:ironore", {
-	description = "AST Iron Ore",
-	tiles = {"asteroid_stone.png^default_mineral_iron.png"},
-	groups = {cracky=2},
-	drop = "default:iron_lump",
-	sounds = default.node_sound_stone_defaults(),
-})
-
-minetest.register_node("asteroid:copperore", {
-	description = "AST Copper Ore",
-	tiles = {"asteroid_stone.png^default_mineral_copper.png"},
-	groups = {cracky=2},
-	drop = "default:copper_lump",
-	sounds = default.node_sound_stone_defaults(),
-})
-
-minetest.register_node("asteroid:goldore", {
-	description = "AST Gold Ore",
-	tiles = {"asteroid_stone.png^default_mineral_gold.png"},
-	groups = {cracky=2},
-	drop = "default:gold_lump",
-	sounds = default.node_sound_stone_defaults(),
-})
-
-minetest.register_node("asteroid:diamondore", {
-	description = "AST Diamond Ore",
-	tiles = {"asteroid_stone.png^default_mineral_diamond.png"},
-	groups = {cracky=1},
-	drop = "default:diamond",
-	sounds = default.node_sound_stone_defaults(),
-})
-
-minetest.register_node("asteroid:meseore", {
-	description = "AST Mese Ore",
-	tiles = {"asteroid_stone.png^default_mineral_mese.png"},
-	groups = {cracky=1},
-	drop = "default:mese_crystal",
-	sounds = default.node_sound_stone_defaults(),
-})
-
-minetest.register_node("asteroid:waterice", {
-	description = "AST Water Ice",
-	tiles = {"asteroid_waterice.png"},
-	groups = {cracky=3,melts=1},
-	sounds = default.node_sound_stone_defaults(),
-})
-
-minetest.register_node("asteroid:atmos", {
-	drawtype = "glasslike",
-	tiles = {"asteroid_atmos.png"},
-	paramtype = "light",
-	sunlight_propagates = true,
-	walkable = false,
-	pointable = false,
-	diggable = false,
-	buildable_to = true,
-	post_effect_color = {a=24, r=255, g=255, b=255},
-	groups = {not_in_creative_inventory=1},
-})
-
-minetest.register_node("asteroid:snowblock", {
-	description = "AST Snow Block",
-	tiles = {"asteroid_snowblock.png"},
-	groups = {crumbly=3,melts=2},
-	sounds = default.node_sound_dirt_defaults({
-		footstep = {name="default_gravel_footstep", gain=0.2},
-	}),
-})
-
-minetest.register_node("asteroid:stonebrick", {
-	description = "Asteroid Stone Brick",
-	tiles = {"asteroid_stonebricktop.png", "asteroid_stonebrickbot.png", "asteroid_stonebrick.png"},
-	groups = {cracky=3},
-	sounds = default.node_sound_stone_defaults(),
-})
-
-minetest.register_node("asteroid:stoneslab", {
-	description = "Asteroid Stone Slab",
-	tiles = {"asteroid_stonebricktop.png", "asteroid_stonebrickbot.png", "asteroid_stonebrick.png"},
-	drawtype = "nodebox",
-	paramtype = "light",
-	sunlight_propagates = true,
-	buildable_to = true,
-	node_box = {
-		type = "fixed",
-		fixed = {
-			{-0.5, -0.5, -0.5, 0.5, 0, 0.5}
-		},
-	},
-	selection_box = {
-		type = "fixed",
-		fixed = {
-			{-0.5, -0.5, -0.5, 0.5, 0, 0.5}
-		},
-	},
-	groups = {cracky=3},
-	sounds = default.node_sound_stone_defaults(),
-})
-
--- Crafting
-
-minetest.register_craft({
-	output = "asteroid:cobble",
-	recipe = {
-		{"asteroid:stone"},
-	},
-})
-
-minetest.register_craft({
-	output = "asteroid:gravel",
-	recipe = {
-		{"asteroid:cobble"},
-	},
-})
-
-minetest.register_craft({
-	output = "asteroid:dust",
-	recipe = {
-		{"asteroid:gravel"},
-	},
-})
-
-minetest.register_craft({
-	output = "asteroid:stonebrick 4",
-	recipe = {
-		{"asteroid:stone", "asteroid:stone"},
-		{"asteroid:stone", "asteroid:stone"},
-	}
-})
-
-minetest.register_craft({
-	output = "asteroid:stoneslab 4",
-	recipe = {
-		{"asteroid:stone", "asteroid:stone"},
-	}
-})
-
-minetest.register_craft({
-	output = "default:water_source",
-	recipe = {
-		{"asteroid:waterice"},
-	},
-})
-
-minetest.register_craft({
-	output = "default:water_source",
-	recipe = {
-		{"asteroid:snowblock"},
-	},
-})
-
--- On dignode. Atmosphere flows into a dug hole.
+-- On dignode function. Atmosphere flows into a dug hole.
 
 minetest.register_on_dignode(function(pos, oldnode, digger)
 	local env = minetest.env
@@ -333,25 +128,27 @@ if ONGEN then
 			for z = z0, z1 do -- for each column do
 				for y = y0, y1 do -- for each node do
 					local noise2 = perlin2:get3d({x=x,y=y,z=z})
-					local pers1 = PERS1AV + noise2 * PERS1AMP
+					local pers1 = PERSAV + noise2 * PERSAMP
 					local perlin1 = minetest.get_perlin(perl1.SEED1, perl1.OCTA1, pers1, perl1.SCAL1)
 					local noise1 = perlin1:get3d({x=x,y=y*SQUFAC,z=z})
 					local noise1abs = math.abs(noise1) 
-					local noise4 = perlin4:get3d({x=x,y=y,z=z})
-					local ascot = ASCOTAV + noise4 * ASCOTAMP
-					if noise1abs > ascot then -- if below surface then
+					local noise4 = perlin4:get3d({x=x,y=y*SQUFAC,z=z})
+					local noise4abs = math.abs(noise4) 
+					if noise1abs > ASCOT or noise4abs > SASCOT then -- if below surface then
 						local comet = false
-						if noise1 < 0 then 
+						if noise1 < -(ASCOT + ATMOT) or noise4 < -(SASCOT + ATMOT) then 
 							comet = true
 						end
-						local noise1dep = noise1abs - ascot -- noise1dep zero at surface, positive beneath
-						if not comet and noise1dep >= LAVAT then -- if asteroid and lava depth then
+						local noise1dep = noise1abs - ASCOT -- noise1dep zero at surface, positive beneath
+						local noise4dep = noise4abs - SASCOT -- noise4dep zero at surface, positive beneath
+						if not comet and noise1dep >= LAVAT then -- if large asteroid and lava depth then
 							minetest.add_node({x=x,y=y,z=z},{name="asteroid:lava"})
 						else -- structure with fissures
 							local noise3 = perlin3:get3d({x=x,y=y,z=z})
 							if math.abs(noise3) > FISTS + noise1dep * FISEXP then -- if no cave then
-								if not comet or (comet and math.random() < noise1dep) then -- asteroid or stone in comet then
-									if noise1dep >= STOT then
+								if not comet or (comet and (math.random() < noise1dep or math.random() < noise4dep)) then
+									-- asteroid or asteroid materials in comet
+									if noise1dep >= STOT or noise4dep >= STOT then
 										-- stone/ores
 										if math.random(ORECHA) == 2 then
 											local noise5 = perlin5:get3d({x=x,y=y,z=z})
@@ -369,15 +166,15 @@ if ONGEN then
 										else
 											minetest.add_node({x=x,y=y,z=z},{name="asteroid:stone"})
 										end
-									elseif noise1dep >= COBT then
+									elseif noise1dep >= COBT or noise4dep >= COBT then
 										minetest.add_node({x=x,y=y,z=z},{name="asteroid:cobble"})
-									elseif noise1dep >= GRAT then
+									elseif noise1dep >= GRAT or noise4dep >= GRAT then
 										minetest.add_node({x=x,y=y,z=z},{name="asteroid:gravel"})
 									else
 										minetest.add_node({x=x,y=y,z=z},{name="asteroid:dust"})
 									end
 								else -- comet
-									if noise1dep >= ICET then
+									if noise1dep >= ICET or noise4dep >= ICET then
 										minetest.add_node({x=x,y=y,z=z},{name="asteroid:waterice"})
 									else
 										minetest.add_node({x=x,y=y,z=z},{name="asteroid:snowblock"})
@@ -387,7 +184,7 @@ if ONGEN then
 								minetest.add_node({x=x,y=y,z=z},{name="asteroid:atmos"})
 							end
 						end
-					elseif noise1 < -(ascot + ATMOT) then -- if comet atmosphere
+					elseif noise1 < -(ASCOT + ATMOT) or noise4 < -(SASCOT + ATMOT) then -- if comet atmosphere
 						minetest.add_node({x=x,y=y,z=z},{name="asteroid:atmos"})
 					end
 				end
