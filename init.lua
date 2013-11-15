@@ -1,4 +1,4 @@
--- asteroid 0.3.0 by paramat
+-- asteroid 0.3.1 by paramat
 -- For latest stable Minetest back to 0.4.7 stable
 -- Depends default
 -- Licenses: code WTFPL, textures CC BY SA
@@ -22,6 +22,7 @@ local SASCOT = 1.0 --  -- Small asteroid / comet nucleus noise threshold.
 local SQUFAC = 2 --  -- Vertical squash factor.
 
 local LAVAT = 0.6 --  -- Asteroid lava threshold.
+local AIRT = 0.5 --  -- Asteroid airlike threshold.
 local STOT = 0.1 --  -- Asteroid stone threshold.
 local COBT = 0.05 --  -- Asteroid cobble threshold.
 local GRAT = 0.02 --  -- Asteroid gravel threshold.
@@ -65,12 +66,28 @@ local perl4 = {
 	SCAL4 = 128, -- 
 }
 
--- 3D Perlin5 for ore selection
+-- 3D Perlin noise 5 for ore selection
 local perl5 = {
 	SEED5 = -70242,
 	OCTA5 = 2, -- 
 	PERS5 = 0.6, -- 
 	SCAL5 = 256, -- 
+}
+
+-- 3D Perlin noise 6 for comet atmosphere
+local perl6 = {
+	SEED6 = -92929422,
+	OCTA6 = 2, --
+	PERS6 = 0.6, -- 
+	SCAL6 = 256, --
+}
+
+-- 3D Perlin noise 7 for small comet atmosphere
+local perl7 = {
+	SEED7 = 1000760700090,
+	OCTA7 = 1, -- 
+	PERS7 = 0.6, -- 
+	SCAL7 = 128, -- 
 }
 
 -- Stuff
@@ -121,6 +138,8 @@ if ONGEN then
 		local perlin3 = minetest.get_perlin(perl3.SEED3, perl3.OCTA3, perl3.PERS3, perl3.SCAL3)
 		local perlin4 = minetest.get_perlin(perl4.SEED4, perl4.OCTA4, perl4.PERS4, perl4.SCAL4)
 		local perlin5 = minetest.get_perlin(perl5.SEED5, perl5.OCTA5, perl5.PERS5, perl5.SCAL5)
+		local perlin6 = minetest.get_perlin(perl6.SEED6, perl6.OCTA6, perl6.PERS6, perl6.SCAL6)
+		local perlin7 = minetest.get_perlin(perl7.SEED7, perl7.OCTA7, perl7.PERS7, perl7.SCAL7)
 		for x = x0, x1 do -- for each plane do
 			if PROG then
 				print ("[asteroid] "..x - x0.." ("..minp.x.." "..minp.y.." "..minp.z..")")
@@ -134,18 +153,20 @@ if ONGEN then
 					local noise1abs = math.abs(noise1) 
 					local noise4 = perlin4:get3d({x=x,y=y*SQUFAC,z=z})
 					local noise4abs = math.abs(noise4) 
+					local noise6 = perlin6:get3d({x=x,y=y*SQUFAC,z=z})
+					local noise7 = perlin7:get3d({x=x,y=y*SQUFAC,z=z})
+					local comet = false
+					if noise6 < -(ASCOT + ATMOT) or (noise7 < -(SASCOT + ATMOT) and noise1 < ASCOT) then 
+						comet = true -- comet biome
+					end
 					if noise1abs > ASCOT or noise4abs > SASCOT then -- if below surface then
-						local comet = false
-						if noise1 < -(ASCOT + ATMOT) or noise4 < -(SASCOT + ATMOT) then 
-							comet = true
-						end
 						local noise1dep = noise1abs - ASCOT -- noise1dep zero at surface, positive beneath
 						local noise4dep = noise4abs - SASCOT -- noise4dep zero at surface, positive beneath
 						if not comet and noise1dep >= LAVAT then -- if large asteroid and lava depth then
 							minetest.add_node({x=x,y=y,z=z},{name="asteroid:lava"})
 						else -- structure with fissures
 							local noise3 = perlin3:get3d({x=x,y=y,z=z})
-							if math.abs(noise3) > FISTS + noise1dep * FISEXP then -- if no cave then
+							if math.abs(noise3) > FISTS + noise1dep * FISEXP then -- if no fissure then
 								if not comet or (comet and (math.random() < noise1dep or math.random() < noise4dep)) then
 									-- asteroid or asteroid materials in comet
 									if noise1dep >= STOT or noise4dep >= STOT then
@@ -180,11 +201,13 @@ if ONGEN then
 										minetest.add_node({x=x,y=y,z=z},{name="asteroid:snowblock"})
 									end
 								end
-							elseif comet then -- cave, if comet then add comet atmosphere
+							elseif not comet and noise1dep >= AIRT then -- fissures, if near lava then add airlike to contain
+								minetest.add_node({x=x,y=y,z=z},{name="asteroid:airlike"})
+							elseif comet then -- fissures, if comet then add comet atmosphere
 								minetest.add_node({x=x,y=y,z=z},{name="asteroid:atmos"})
 							end
 						end
-					elseif noise1 < -(ASCOT + ATMOT) or noise4 < -(SASCOT + ATMOT) then -- if comet atmosphere
+					elseif comet then -- if comet atmosphere then
 						minetest.add_node({x=x,y=y,z=z},{name="asteroid:atmos"})
 					end
 				end

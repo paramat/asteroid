@@ -21,6 +21,18 @@ minetest.register_node("asteroid:lava", {
 	groups = {lava=3, liquid=2, hot=3, igniter=1},
 })
 
+minetest.register_node("asteroid:airlike", {
+	drawtype = "airlike",
+	tiles = {""},
+	paramtype = "light",
+	sunlight_propagates = true,
+	walkable = false,
+	pointable = true,
+	diggable = false,
+	buildable_to = true,
+	groups = {not_in_creative_inventory=1},
+})
+
 minetest.register_node("asteroid:stone", {
 	description = "AST Stone",
 	tiles = {"asteroid_stone.png"},
