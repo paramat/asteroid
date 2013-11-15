@@ -1,38 +1,5 @@
 -- Nodes
 
-minetest.register_node("asteroid:lava", {
-	description = "AST lava",
-	inventory_image = minetest.inventorycube("asteroid_lava.png"),
-	drawtype = "liquid",
-	tiles = {
-		{name="asteroid_lava_source_animated.png", animation={type="vertical_frames", aspect_w=16, aspect_h=16, length=3.0}}
-	},
-	paramtype = "light",
-	light_source = LIGHT_MAX - 1,
-	walkable = false,
-	pointable = false,
-	diggable = false,
-	buildable_to = true,
-	liquidtype = "source",
-	liquid_alternative_flowing = "air",
-	liquid_alternative_source = "default:lava_source",
-	damage_per_second = 4*2,
-	post_effect_color = {a=192, r=255, g=64, b=0},
-	groups = {lava=3, liquid=2, hot=3, igniter=1},
-})
-
-minetest.register_node("asteroid:airlike", {
-	drawtype = "airlike",
-	tiles = {""},
-	paramtype = "light",
-	sunlight_propagates = true,
-	walkable = false,
-	pointable = true,
-	diggable = false,
-	buildable_to = true,
-	groups = {not_in_creative_inventory=1},
-})
-
 minetest.register_node("asteroid:stone", {
 	description = "AST Stone",
 	tiles = {"asteroid_stone.png"},

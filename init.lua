@@ -1,4 +1,4 @@
--- asteroid 0.3.1 by paramat
+-- asteroid 0.3.2 by paramat
 -- For latest stable Minetest back to 0.4.7 stable
 -- Depends default
 -- Licenses: code WTFPL, textures CC BY SA
@@ -21,10 +21,8 @@ local PERSAMP = 0.1 --  -- Persistence1 amplitude.
 local SASCOT = 1.0 --  -- Small asteroid / comet nucleus noise threshold.
 local SQUFAC = 2 --  -- Vertical squash factor.
 
-local LAVAT = 0.6 --  -- Asteroid lava threshold.
-local AIRT = 0.5 --  -- Asteroid airlike threshold.
-local STOT = 0.1 --  -- Asteroid stone threshold.
-local COBT = 0.05 --  -- Asteroid cobble threshold.
+local STOT = 0.18 --  -- Asteroid stone threshold.
+local COBT = 0.06 --  -- Asteroid cobble threshold.
 local GRAT = 0.02 --  -- Asteroid gravel threshold.
 
 local ICET = 0.1 --  -- Comet ice threshold.
@@ -161,51 +159,45 @@ if ONGEN then
 					end
 					if noise1abs > ASCOT or noise4abs > SASCOT then -- if below surface then
 						local noise1dep = noise1abs - ASCOT -- noise1dep zero at surface, positive beneath
-						local noise4dep = noise4abs - SASCOT -- noise4dep zero at surface, positive beneath
-						if not comet and noise1dep >= LAVAT then -- if large asteroid and lava depth then
-							minetest.add_node({x=x,y=y,z=z},{name="asteroid:lava"})
-						else -- structure with fissures
-							local noise3 = perlin3:get3d({x=x,y=y,z=z})
-							if math.abs(noise3) > FISTS + noise1dep * FISEXP then -- if no fissure then
-								if not comet or (comet and (math.random() < noise1dep or math.random() < noise4dep)) then
-									-- asteroid or asteroid materials in comet
-									if noise1dep >= STOT or noise4dep >= STOT then
-										-- stone/ores
-										if math.random(ORECHA) == 2 then
-											local noise5 = perlin5:get3d({x=x,y=y,z=z})
-											if noise5 > 1 then
-												minetest.add_node({x=x,y=y,z=z},{name="asteroid:goldore"})
-											elseif noise5 < -1 then
-												minetest.add_node({x=x,y=y,z=z},{name="asteroid:diamondore"})
-											elseif noise5 > 0.3 then
-												minetest.add_node({x=x,y=y,z=z},{name="asteroid:meseore"})
-											elseif noise5 < -0.3 then
-												minetest.add_node({x=x,y=y,z=z},{name="asteroid:copperore"})
-											else
-												minetest.add_node({x=x,y=y,z=z},{name="asteroid:ironore"})
-											end
+						local noise3 = perlin3:get3d({x=x,y=y,z=z})
+						if math.abs(noise3) > FISTS + noise1dep * FISEXP then -- if no fissure then
+							local noise4dep = noise4abs - SASCOT -- noise4dep zero at surface, positive beneath
+							if not comet or (comet and (math.random() < noise1dep or math.random() < noise4dep)) then
+								-- asteroid or asteroid materials in comet
+								if noise1dep >= STOT or noise4dep >= STOT then
+									-- stone/ores
+									if math.random(ORECHA) == 2 then
+										local noise5 = perlin5:get3d({x=x,y=y,z=z})
+										if noise5 > 1 then
+											minetest.add_node({x=x,y=y,z=z},{name="asteroid:goldore"})
+										elseif noise5 < -1 then
+											minetest.add_node({x=x,y=y,z=z},{name="asteroid:diamondore"})
+										elseif noise5 > 0.3 then
+											minetest.add_node({x=x,y=y,z=z},{name="asteroid:meseore"})
+										elseif noise5 < -0.3 then
+											minetest.add_node({x=x,y=y,z=z},{name="asteroid:copperore"})
 										else
-											minetest.add_node({x=x,y=y,z=z},{name="asteroid:stone"})
+											minetest.add_node({x=x,y=y,z=z},{name="asteroid:ironore"})
 										end
-									elseif noise1dep >= COBT or noise4dep >= COBT then
-										minetest.add_node({x=x,y=y,z=z},{name="asteroid:cobble"})
-									elseif noise1dep >= GRAT or noise4dep >= GRAT then
-										minetest.add_node({x=x,y=y,z=z},{name="asteroid:gravel"})
 									else
-										minetest.add_node({x=x,y=y,z=z},{name="asteroid:dust"})
+										minetest.add_node({x=x,y=y,z=z},{name="asteroid:stone"})
 									end
-								else -- comet
-									if noise1dep >= ICET or noise4dep >= ICET then
-										minetest.add_node({x=x,y=y,z=z},{name="asteroid:waterice"})
-									else
-										minetest.add_node({x=x,y=y,z=z},{name="asteroid:snowblock"})
-									end
+								elseif noise1dep >= COBT or noise4dep >= COBT then
+									minetest.add_node({x=x,y=y,z=z},{name="asteroid:cobble"})
+								elseif noise1dep >= GRAT or noise4dep >= GRAT then
+									minetest.add_node({x=x,y=y,z=z},{name="asteroid:gravel"})
+								else
+									minetest.add_node({x=x,y=y,z=z},{name="asteroid:dust"})
 								end
-							elseif not comet and noise1dep >= AIRT then -- fissures, if near lava then add airlike to contain
-								minetest.add_node({x=x,y=y,z=z},{name="asteroid:airlike"})
-							elseif comet then -- fissures, if comet then add comet atmosphere
-								minetest.add_node({x=x,y=y,z=z},{name="asteroid:atmos"})
+							else -- comet materials
+								if noise1dep >= ICET or noise4dep >= ICET then
+									minetest.add_node({x=x,y=y,z=z},{name="asteroid:waterice"})
+								else
+									minetest.add_node({x=x,y=y,z=z},{name="asteroid:snowblock"})
+								end
 							end
+						elseif comet then -- fissures, if comet then add comet atmosphere
+							minetest.add_node({x=x,y=y,z=z},{name="asteroid:atmos"})
 						end
 					elseif comet then -- if comet atmosphere then
 						minetest.add_node({x=x,y=y,z=z},{name="asteroid:atmos"})

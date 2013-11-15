@@ -1,11 +1,11 @@
-asteroid 0.3.1 by paramat
+asteroid 0.3.2 by paramat
 For latest stable Minetest back to 0.4.7 stable
 Depends default
 Licenses: code WTFPL, textures CC BY-SA
 
 A realm of asteroids and comets is created in the chosen volume, by default between y = 13000 and y = 14000.
 2 perlin noises of differing scales create interpenetrating large and small structures.
-Asteroids have muliple layers, outer to inner: dust, gravel, cobble, stone and lava. Only the largest asteroids have a small core of non-flowing lava.
+Asteroids have muliple layers, outer to inner: dust, gravel, cobble and stone with ores.
 Asteroid stone is rich in iron, mese crystal, copper, gold and diamond.
 By crafting, stone can be broken down into cobble, cobble into gravel and gravel into dust.
 Asteroid stone can be crafted to dark stone bricks or slabs.
