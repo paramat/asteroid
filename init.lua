@@ -1,4 +1,4 @@
--- asteroid 0.3.2 by paramat
+-- asteroid 0.3.3 by paramat
 -- For latest stable Minetest back to 0.4.7 stable
 -- Depends default
 -- Licenses: code WTFPL, textures CC BY SA
@@ -21,17 +21,21 @@ local PERSAMP = 0.1 --  -- Persistence1 amplitude.
 local SASCOT = 1.0 --  -- Small asteroid / comet nucleus noise threshold.
 local SQUFAC = 2 --  -- Vertical squash factor.
 
-local STOT = 0.18 --  -- Asteroid stone threshold.
-local COBT = 0.06 --  -- Asteroid cobble threshold.
+local STOT = 0.125 --  -- Asteroid stone threshold.
+local COBT = 0.05 --  -- Asteroid cobble threshold.
 local GRAT = 0.02 --  -- Asteroid gravel threshold.
 
-local ICET = 0.1 --  -- Comet ice threshold.
+local ICET = 0.125 --  -- Comet ice threshold.
 local ATMOT = -0.2 --  -- Comet atmosphere threshold.
 
 local FISTS = 0.01 -- 0.01 -- Fissure noise threshold at surface. Controls size of fissures and amount / size of fissure entrances at surface.
 local FISEXP = 0.3 -- 0.3 -- Fissure expansion rate under surface.
 
 local ORECHA = 4*4*4 --  -- Ore 1/x chance per stone node (iron, mese ore, copper, gold, diamond).
+
+local CPC = 5
+local CRMIN = 4
+local CRMAX = 7
 
 -- 3D Perlin noise 1 for large structures
 local perl1 = {
@@ -162,7 +166,7 @@ if ONGEN then
 						local noise3 = perlin3:get3d({x=x,y=y,z=z})
 						if math.abs(noise3) > FISTS + noise1dep * FISEXP then -- if no fissure then
 							local noise4dep = noise4abs - SASCOT -- noise4dep zero at surface, positive beneath
-							if not comet or (comet and (math.random() < noise1dep or math.random() < noise4dep)) then
+							if not comet or (comet and (noise1dep > math.random() + 0.05 or noise4dep > math.random() + 0.05)) then
 								-- asteroid or asteroid materials in comet
 								if noise1dep >= STOT or noise4dep >= STOT then
 									-- stone/ores
@@ -201,6 +205,50 @@ if ONGEN then
 						end
 					elseif comet then -- if comet atmosphere then
 						minetest.add_node({x=x,y=y,z=z},{name="asteroid:atmos"})
+					end
+				end
+			end
+		end
+		-- craters
+		for ci = 1, CPC do -- iterate
+			local cr = math.random(CRMIN, CRMAX) -- radius
+			local cx = math.random(minp.x + cr, maxp.x - cr) -- centre x
+			local cz = math.random(minp.z + cr, maxp.z - cr) -- centre z
+			local comet = false
+			local surfy = false
+			for y = y1, y0 + cr, -1 do
+				local nodename = minetest.get_node({x=cx,y=y,z=cz}).name
+				if nodename == "asteroid:dust"
+				or nodename == "asteroid:gravel" then
+					surfy = y
+					break
+				elseif nodename == "asteroid:snow"
+				or nodename == "asteroid:ice" then
+					comet = true
+					surfy = y
+					break
+				end
+			end
+			if surfy and y1 - surfy > 8 then -- if surface found and 8 node space above impact node then
+				for x = cx - cr, cx + cr do -- for each plane do
+					for z = cz - cr, cz + cr do -- for each column do
+						for y = surfy - cr, surfy + cr do -- for each node do
+							local nr = ((x - cx) ^ 2 + (y - surfy) ^ 2 + (z - cz) ^ 2) ^ 0.5
+							if nr <= cr - 1 then
+								if comet then
+									minetest.add_node({x=x,y=y,z=z},{name="asteroid:atmos"})
+								else
+									minetest.remove_node({x=x,y=y,z=z})
+								end
+							elseif nr <= cr then
+								local nodename = minetest.get_node({x=x,y=y,z=z}).name
+								if nodename == "asteroid:cobble"
+								or nodename == "asteroid:gravel"
+								or nodename == "asteroid:stone" then
+									minetest.add_node({x=x,y=y,z=z},{name="asteroid:dust"})
+								end
+							end
+						end
 					end
 				end
 			end

@@ -1,4 +1,4 @@
-asteroid 0.3.2 by paramat
+asteroid 0.3.3 by paramat
 For latest stable Minetest back to 0.4.7 stable
 Depends default
 Licenses: code WTFPL, textures CC BY-SA
