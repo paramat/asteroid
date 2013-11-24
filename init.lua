@@ -1,4 +1,4 @@
--- asteroid lvm/pm version 0.4.1 by paramat
+-- asteroid lvm/pm version 0.4.2 by paramat
 -- For latest stable Minetest back to 0.4.8
 -- Depends default
 -- Licenses: code WTFPL, textures CC BY SA
@@ -15,74 +15,97 @@ local ZMAX = 33000
 
 local ASCOT = 1.0 --  -- Large asteroid / comet nucleus noise threshold.
 local SASCOT = 1.0 --  -- Small asteroid / comet nucleus noise threshold.
-
 local STOT = 0.125 --  -- Asteroid stone threshold.
 local COBT = 0.05 --  -- Asteroid cobble threshold.
 local GRAT = 0.02 --  -- Asteroid gravel threshold.
-
 local ICET = 0.05 --  -- Comet ice threshold.
 local ATMOT = -0.2 --  -- Comet atmosphere threshold.
-
 local FISTS = 0.01 -- 0.01 -- Fissure noise threshold at surface. Controls size of fissures and amount / size of fissure entrances at surface.
 local FISEXP = 0.3 -- 0.3 -- Fissure expansion rate under surface.
-
 local ORECHA = 5*5*5 --  -- Ore 1/x chance per stone node (iron, mese ore, copper, gold, diamond).
 
 -- 3D Perlin noise 1 for large structures
-local perl1 = {
-	SEED1 = -92929422,
-	OCTA1 = 5, --
-	PERS1 = 0.6, -- 
-	SCAL1 = 256, --
-	VSCAL1 = 128, --
+
+local np_large = {
+	offset = 0,
+	scale = 1,
+	spread = {x=256, y=128, z=256},
+	seed = -83928935,
+	octaves = 5,
+	persist = 0.6
 }
 
 -- 3D Perlin noise 3 for fissures
-local perl3 = {
-	SEED3 = -188881,
-	OCTA3 = 4, -- 
-	PERS3 = 0.5, -- 
-	SCAL3 = 64, -- 
+
+local np_fissure = {
+	offset = 0,
+	scale = 1,
+	spread = {x=64, y=64, z=64},
+	seed = -188881,
+	octaves = 4,
+	persist = 0.5
 }
 
 -- 3D Perlin noise 4 for small structures
-local perl4 = {
-	SEED4 = 1000760700090,
-	OCTA4 = 4, -- 
-	PERS4 = 0.6, -- 
-	SCAL4 = 128, -- 
-	VSCAL4 = 64, -- 
+
+local np_small = {
+	offset = 0,
+	scale = 1,
+	spread = {x=128, y=64, z=128},
+	seed = 1000760700090,
+	octaves = 4,
+	persist = 0.6
 }
 
 -- 3D Perlin noise 5 for ore selection
-local perl5 = {
-	SEED5 = -70242,
-	OCTA5 = 1, -- 
-	PERS5 = 0.5, -- 
-	SCAL5 = 128, -- 
+
+local np_ores = {
+	offset = 0,
+	scale = 1,
+	spread = {x=128, y=128, z=128},
+	seed = -70242,
+	octaves = 1,
+	persist = 0.5
 }
 
 -- 3D Perlin noise 6 for comet atmosphere
-local perl6 = {
-	SEED6 = -92929422,
-	OCTA6 = 2, --
-	PERS6 = 0.6, -- 
-	SCAL6 = 256, --
-	VSCAL6 = 128, --
+
+local np_latmos = {
+	offset = 0,
+	scale = 1,
+	spread = {x=256, y=128, z=256},
+	seed = -83928935,
+	octaves = 3,
+	persist = 0.6
 }
 
 -- 3D Perlin noise 7 for small comet atmosphere
-local perl7 = {
-	SEED7 = 1000760700090,
-	OCTA7 = 1, -- 
-	PERS7 = 0.6, -- 
-	SCAL7 = 128, -- 
-	VSCAL7 = 64, -- 
+
+local np_satmos = {
+	offset = 0,
+	scale = 1,
+	spread = {x=128, y=64, z=128},
+	seed = 1000760700090,
+	octaves = 2,
+	persist = 0.6
 }
 
 -- Stuff
 
 asteroid = {}
+
+local c_stone
+local c_cobble
+local c_gravel
+local c_dust
+local c_ironore
+local c_copperore
+local c_goldore
+local c_diamondore
+local c_meseore
+local c_waterice
+local c_atmos
+local c_snowblock
 
 dofile(minetest.get_modpath("asteroid").."/nodes.lua")
 
@@ -122,56 +145,32 @@ minetest.register_on_generated(function(minp, maxp, seed)
 	local y0 = minp.y
 	local z0 = minp.z
 	local sidelen = x1 - x0 + 1 -- chunk side length
-	local vplanarea = sidelen ^ 2 -- vertical plane area, used when calculating index from x y x
+	local vplanarea = sidelen ^ 2 -- vertical plane area, used if calculating index from x y z
+	local chulens = {x=sidelen, y=sidelen, z=sidelen}
 	
 	local vm, emin, emax = minetest.get_mapgen_object("voxelmanip")
 	local area = VoxelArea:new{MinEdge=emin, MaxEdge=emax}
 	local data = vm:get_data()
 	
-	local c_stone = minetest.get_content_id("asteroid:stone")
-	local c_cobble = minetest.get_content_id("asteroid:cobble")
-	local c_gravel = minetest.get_content_id("asteroid:gravel")
-	local c_dust = minetest.get_content_id("asteroid:dust")
-	local c_ironore = minetest.get_content_id("asteroid:ironore")
-	local c_copperore = minetest.get_content_id("asteroid:copperore")
-	local c_goldore = minetest.get_content_id("asteroid:goldore")
-	local c_diamondore = minetest.get_content_id("asteroid:diamondore")
-	local c_meseore = minetest.get_content_id("asteroid:meseore")
-	local c_waterice = minetest.get_content_id("asteroid:waterice")
-	local c_atmos = minetest.get_content_id("asteroid:atmos")
-	local c_snowblock = minetest.get_content_id("asteroid:snowblock")
-
-	local perlin1 = minetest.get_perlin_map(
-		{offset=0, scale=1, spread={x=perl1.SCAL1, y=perl1.VSCAL1, z=perl1.SCAL1}, seed=perl1.SEED1, octaves=perl1.OCTA1, persist=perl1.PERS1},
-		{x=sidelen, y=sidelen, z=sidelen}
-		)
-	local perlin3 = minetest.get_perlin_map(
-		{offset=0, scale=1, spread={x=perl3.SCAL3, y=perl3.SCAL3, z=perl3.SCAL3}, seed=perl3.SEED3, octaves=perl3.OCTA3, persist=perl3.PERS3},
-		{x=sidelen, y=sidelen, z=sidelen}
-		)
-	local perlin4 = minetest.get_perlin_map(
-		{offset=0, scale=1, spread={x=perl4.SCAL4, y=perl4.VSCAL4, z=perl4.SCAL4}, seed=perl4.SEED4, octaves=perl4.OCTA4, persist=perl4.PERS4},
-		{x=sidelen, y=sidelen, z=sidelen}
-		)
-	local perlin5 = minetest.get_perlin_map(
-		{offset=0, scale=1, spread={x=perl5.SCAL5, y=perl5.SCAL5, z=perl5.SCAL5}, seed=perl5.SEED5, octaves=perl5.OCTA5, persist=perl5.PERS5},
-		{x=sidelen, y=sidelen, z=sidelen}
-		)
-	local perlin6 = minetest.get_perlin_map(
-		{offset=0, scale=1, spread={x=perl6.SCAL6, y=perl6.VSCAL6, z=perl6.SCAL6}, seed=perl6.SEED6, octaves=perl6.OCTA6, persist=perl6.PERS6},
-		{x=sidelen, y=sidelen, z=sidelen}
-		)
-	local perlin7 = minetest.get_perlin_map(
-		{offset=0, scale=1, spread={x=perl7.SCAL7, y=perl7.VSCAL7, z=perl7.SCAL7}, seed=perl7.SEED7, octaves=perl7.OCTA7, persist=perl7.PERS7},
-		{x=sidelen, y=sidelen, z=sidelen}
-		)
+	c_stone = minetest.get_content_id("asteroid:stone")
+	c_cobble = minetest.get_content_id("asteroid:cobble")
+	c_gravel = minetest.get_content_id("asteroid:gravel")
+	c_dust = minetest.get_content_id("asteroid:dust")
+	c_ironore = minetest.get_content_id("asteroid:ironore")
+	c_copperore = minetest.get_content_id("asteroid:copperore")
+	c_goldore = minetest.get_content_id("asteroid:goldore")
+	c_diamondore = minetest.get_content_id("asteroid:diamondore")
+	c_meseore = minetest.get_content_id("asteroid:meseore")
+	c_waterice = minetest.get_content_id("asteroid:waterice")
+	c_atmos = minetest.get_content_id("asteroid:atmos")
+	c_snowblock = minetest.get_content_id("asteroid:snowblock")
 	
-	local nvals1 = perlin1:get3dMap_flat({x=minp.x, y=minp.y, z=minp.z})
-	local nvals3 = perlin3:get3dMap_flat({x=minp.x, y=minp.y, z=minp.z})
-	local nvals4 = perlin4:get3dMap_flat({x=minp.x, y=minp.y, z=minp.z})
-	local nvals5 = perlin5:get3dMap_flat({x=minp.x, y=minp.y, z=minp.z})
-	local nvals6 = perlin6:get3dMap_flat({x=minp.x, y=minp.y, z=minp.z})
-	local nvals7 = perlin7:get3dMap_flat({x=minp.x, y=minp.y, z=minp.z})
+	local nvals1 = minetest.get_perlin_map(np_large, chulens):get3dMap_flat({x=minp.x, y=minp.y, z=minp.z})
+	local nvals3 = minetest.get_perlin_map(np_fissure, chulens):get3dMap_flat({x=minp.x, y=minp.y, z=minp.z})
+	local nvals4 = minetest.get_perlin_map(np_small, chulens):get3dMap_flat({x=minp.x, y=minp.y, z=minp.z})
+	local nvals5 = minetest.get_perlin_map(np_ores, chulens):get3dMap_flat({x=minp.x, y=minp.y, z=minp.z})
+	local nvals6 = minetest.get_perlin_map(np_latmos, chulens):get3dMap_flat({x=minp.x, y=minp.y, z=minp.z})
+	local nvals7 = minetest.get_perlin_map(np_satmos, chulens):get3dMap_flat({x=minp.x, y=minp.y, z=minp.z})
 	
 	local ni = 1
 	for z = z0, z1 do -- for each plane do

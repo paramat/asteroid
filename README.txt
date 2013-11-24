@@ -1,10 +1,10 @@
-asteroid lvm/pm version 0.4.1 by paramat
+asteroid lvm/pm version 0.4.2 by paramat
 For latest stable Minetest back to 0.4.8
 Depends default
 Licenses: code WTFPL, textures CC BY-SA
 For use as a stacked realm in v6, indev or v7 mapgen
 
-A realm of asteroids and comets is created in the chosen volume, by default between y = 13000 and y = 14000.
+A realm of asteroids and comets is created in the volume chosen by parameters.
 2 perlin noises of differing scales create interpenetrating large and small structures.
 Asteroids have muliple layers, outer to inner: dust, gravel, cobble and stone with ores.
 Asteroid stone is rich in iron, mese crystal, copper, gold and diamond.
@@ -13,7 +13,7 @@ Asteroid stone can be crafted to dark stone bricks or slabs.
 Comets have layers of snow and ice blended with asteroid structure depending on depth below surface.
 Comets are surrounded by a misty atmosphere of water vapour which hides the nucleus from view. The atmosphere has a smoother shape than the comet it surrounds.
 Comet ice and snow can be crafted to default:water_source.
-Both have weblike 'fissure' cave systems, but these do not pass through the lava cores of larger asteroids.
+Both have weblike 'fissure' cave systems.
 
 Crafting
 --------
