@@ -1,55 +1,40 @@
--- asteroid 0.3.3 by paramat
--- For latest stable Minetest back to 0.4.7 stable
+-- asteroid lvm/pm version 0.4.1 by paramat
+-- For latest stable Minetest back to 0.4.8
 -- Depends default
 -- Licenses: code WTFPL, textures CC BY SA
+-- For use as a stacked realm in v6, indev or v7 mapgen
 
 -- Variables
 
-local ONGEN = true -- (true / false) Realm generation.
-local PROG = true -- Print generation progress to terminal.
-
-local YMIN = 13000 -- Approximate realm bottom.
-local YMAX = 14000 -- Approximate realm top.
-local XMIN = -16000 -- Approximate realm edges.
-local XMAX = 16000
-local ZMIN = -16000
-local ZMAX = 16000
+local YMIN = 11000 -- Approximate realm bottom.
+local YMAX = 13000 -- Approximate realm top.
+local XMIN = -33000 -- Approximate realm edges.
+local XMAX = 33000
+local ZMIN = -33000
+local ZMAX = 33000
 
 local ASCOT = 1.0 --  -- Large asteroid / comet nucleus noise threshold.
-local PERSAV = 0.6 --  -- Persistence1 average.
-local PERSAMP = 0.1 --  -- Persistence1 amplitude.
 local SASCOT = 1.0 --  -- Small asteroid / comet nucleus noise threshold.
-local SQUFAC = 2 --  -- Vertical squash factor.
 
 local STOT = 0.125 --  -- Asteroid stone threshold.
 local COBT = 0.05 --  -- Asteroid cobble threshold.
 local GRAT = 0.02 --  -- Asteroid gravel threshold.
 
-local ICET = 0.125 --  -- Comet ice threshold.
+local ICET = 0.05 --  -- Comet ice threshold.
 local ATMOT = -0.2 --  -- Comet atmosphere threshold.
 
 local FISTS = 0.01 -- 0.01 -- Fissure noise threshold at surface. Controls size of fissures and amount / size of fissure entrances at surface.
 local FISEXP = 0.3 -- 0.3 -- Fissure expansion rate under surface.
 
-local ORECHA = 4*4*4 --  -- Ore 1/x chance per stone node (iron, mese ore, copper, gold, diamond).
-
-local CPC = 5
-local CRMIN = 4
-local CRMAX = 7
+local ORECHA = 5*5*5 --  -- Ore 1/x chance per stone node (iron, mese ore, copper, gold, diamond).
 
 -- 3D Perlin noise 1 for large structures
 local perl1 = {
 	SEED1 = -92929422,
 	OCTA1 = 5, --
+	PERS1 = 0.6, -- 
 	SCAL1 = 256, --
-}
-
--- 3D Perlin noise 2 for varying persistence of noise1
-local perl2 = {
-	SEED2 = 595668,
-	OCTA2 = 2, -- 
-	PERS2 = 0.6, -- 
-	SCAL2 = 1024, -- 
+	VSCAL1 = 128, --
 }
 
 -- 3D Perlin noise 3 for fissures
@@ -66,14 +51,15 @@ local perl4 = {
 	OCTA4 = 4, -- 
 	PERS4 = 0.6, -- 
 	SCAL4 = 128, -- 
+	VSCAL4 = 64, -- 
 }
 
 -- 3D Perlin noise 5 for ore selection
 local perl5 = {
 	SEED5 = -70242,
-	OCTA5 = 2, -- 
-	PERS5 = 0.6, -- 
-	SCAL5 = 256, -- 
+	OCTA5 = 1, -- 
+	PERS5 = 0.5, -- 
+	SCAL5 = 128, -- 
 }
 
 -- 3D Perlin noise 6 for comet atmosphere
@@ -82,6 +68,7 @@ local perl6 = {
 	OCTA6 = 2, --
 	PERS6 = 0.6, -- 
 	SCAL6 = 256, --
+	VSCAL6 = 128, --
 }
 
 -- 3D Perlin noise 7 for small comet atmosphere
@@ -90,6 +77,7 @@ local perl7 = {
 	OCTA7 = 1, -- 
 	PERS7 = 0.6, -- 
 	SCAL7 = 128, -- 
+	VSCAL7 = 64, -- 
 }
 
 -- Stuff
@@ -101,7 +89,6 @@ dofile(minetest.get_modpath("asteroid").."/nodes.lua")
 -- On dignode function. Atmosphere flows into a dug hole.
 
 minetest.register_on_dignode(function(pos, oldnode, digger)
-	local env = minetest.env
 	local x = pos.x
 	local y = pos.y
 	local z = pos.z
@@ -109,10 +96,9 @@ minetest.register_on_dignode(function(pos, oldnode, digger)
 	for j = -1,1 do
 	for k = -1,1 do
 		if not (i == 0 and j == 0 and k == 0) then
-			local nodename = env:get_node({x=x+i,y=y+j,z=z+k}).name
+			local nodename = minetest.get_node({x=x+i,y=y+j,z=z+k}).name
 			if nodename == "asteroid:atmos" then	
-				env:add_node({x=x,y=y,z=z},{name="asteroid:atmos"})
-				print ("[moonrealm] Atmosphere flows into hole")
+				minetest.add_node({x=x,y=y,z=z},{name="asteroid:atmos"})
 				return
 			end
 		end
@@ -123,135 +109,130 @@ end)
 
 -- On generated function
 
-if ONGEN then
-	minetest.register_on_generated(function(minp, maxp, seed)
-		if minp.x < XMIN or maxp.x > XMAX
-		or minp.y < YMIN or maxp.y > YMAX
-		or minp.z < ZMIN or maxp.z > ZMAX then
-			return
+minetest.register_on_generated(function(minp, maxp, seed)
+	if minp.x < XMIN or maxp.x > XMAX
+	or minp.y < YMIN or maxp.y > YMAX
+	or minp.z < ZMIN or maxp.z > ZMAX then
+		return
+	end
+	local x1 = maxp.x
+	local y1 = maxp.y
+	local z1 = maxp.z
+	local x0 = minp.x
+	local y0 = minp.y
+	local z0 = minp.z
+	local sidelen = x1 - x0 + 1 -- chunk side length
+	local vplanarea = sidelen ^ 2 -- vertical plane area, used when calculating index from x y x
+	
+	local vm, emin, emax = minetest.get_mapgen_object("voxelmanip")
+	local area = VoxelArea:new{MinEdge=emin, MaxEdge=emax}
+	local data = vm:get_data()
+	
+	local c_stone = minetest.get_content_id("asteroid:stone")
+	local c_cobble = minetest.get_content_id("asteroid:cobble")
+	local c_gravel = minetest.get_content_id("asteroid:gravel")
+	local c_dust = minetest.get_content_id("asteroid:dust")
+	local c_ironore = minetest.get_content_id("asteroid:ironore")
+	local c_copperore = minetest.get_content_id("asteroid:copperore")
+	local c_goldore = minetest.get_content_id("asteroid:goldore")
+	local c_diamondore = minetest.get_content_id("asteroid:diamondore")
+	local c_meseore = minetest.get_content_id("asteroid:meseore")
+	local c_waterice = minetest.get_content_id("asteroid:waterice")
+	local c_atmos = minetest.get_content_id("asteroid:atmos")
+	local c_snowblock = minetest.get_content_id("asteroid:snowblock")
+
+	local perlin1 = minetest.get_perlin_map(
+		{offset=0, scale=1, spread={x=perl1.SCAL1, y=perl1.VSCAL1, z=perl1.SCAL1}, seed=perl1.SEED1, octaves=perl1.OCTA1, persist=perl1.PERS1},
+		{x=sidelen, y=sidelen, z=sidelen}
+		)
+	local perlin3 = minetest.get_perlin_map(
+		{offset=0, scale=1, spread={x=perl3.SCAL3, y=perl3.SCAL3, z=perl3.SCAL3}, seed=perl3.SEED3, octaves=perl3.OCTA3, persist=perl3.PERS3},
+		{x=sidelen, y=sidelen, z=sidelen}
+		)
+	local perlin4 = minetest.get_perlin_map(
+		{offset=0, scale=1, spread={x=perl4.SCAL4, y=perl4.VSCAL4, z=perl4.SCAL4}, seed=perl4.SEED4, octaves=perl4.OCTA4, persist=perl4.PERS4},
+		{x=sidelen, y=sidelen, z=sidelen}
+		)
+	local perlin5 = minetest.get_perlin_map(
+		{offset=0, scale=1, spread={x=perl5.SCAL5, y=perl5.SCAL5, z=perl5.SCAL5}, seed=perl5.SEED5, octaves=perl5.OCTA5, persist=perl5.PERS5},
+		{x=sidelen, y=sidelen, z=sidelen}
+		)
+	local perlin6 = minetest.get_perlin_map(
+		{offset=0, scale=1, spread={x=perl6.SCAL6, y=perl6.VSCAL6, z=perl6.SCAL6}, seed=perl6.SEED6, octaves=perl6.OCTA6, persist=perl6.PERS6},
+		{x=sidelen, y=sidelen, z=sidelen}
+		)
+	local perlin7 = minetest.get_perlin_map(
+		{offset=0, scale=1, spread={x=perl7.SCAL7, y=perl7.VSCAL7, z=perl7.SCAL7}, seed=perl7.SEED7, octaves=perl7.OCTA7, persist=perl7.PERS7},
+		{x=sidelen, y=sidelen, z=sidelen}
+		)
+	
+	local nvals1 = perlin1:get3dMap_flat({x=minp.x, y=minp.y, z=minp.z})
+	local nvals3 = perlin3:get3dMap_flat({x=minp.x, y=minp.y, z=minp.z})
+	local nvals4 = perlin4:get3dMap_flat({x=minp.x, y=minp.y, z=minp.z})
+	local nvals5 = perlin5:get3dMap_flat({x=minp.x, y=minp.y, z=minp.z})
+	local nvals6 = perlin6:get3dMap_flat({x=minp.x, y=minp.y, z=minp.z})
+	local nvals7 = perlin7:get3dMap_flat({x=minp.x, y=minp.y, z=minp.z})
+	
+	local ni = 1
+	for z = z0, z1 do -- for each plane do
+	for y = y0, y1 do -- for each column do
+	for x = x0, x1 do -- for each node do
+		local vi = area:index(x, y, z) -- LVM index for node
+		local noise1abs = math.abs(nvals1[ni]) 
+		local noise4abs = math.abs(nvals4[ni]) 
+		local comet = false
+		if nvals6[ni] < -(ASCOT + ATMOT) or (nvals7[ni] < -(SASCOT + ATMOT) and nvals1[ni] < ASCOT) then 
+			comet = true -- comet biome
 		end
-		local x1 = maxp.x
-		local y1 = maxp.y
-		local z1 = maxp.z
-		local x0 = minp.x
-		local y0 = minp.y
-		local z0 = minp.z
-		local perlin2 = minetest.get_perlin(perl2.SEED2, perl2.OCTA2, perl2.PERS2, perl2.SCAL2)
-		local perlin3 = minetest.get_perlin(perl3.SEED3, perl3.OCTA3, perl3.PERS3, perl3.SCAL3)
-		local perlin4 = minetest.get_perlin(perl4.SEED4, perl4.OCTA4, perl4.PERS4, perl4.SCAL4)
-		local perlin5 = minetest.get_perlin(perl5.SEED5, perl5.OCTA5, perl5.PERS5, perl5.SCAL5)
-		local perlin6 = minetest.get_perlin(perl6.SEED6, perl6.OCTA6, perl6.PERS6, perl6.SCAL6)
-		local perlin7 = minetest.get_perlin(perl7.SEED7, perl7.OCTA7, perl7.PERS7, perl7.SCAL7)
-		for x = x0, x1 do -- for each plane do
-			if PROG then
-				print ("[asteroid] "..x - x0.." ("..minp.x.." "..minp.y.." "..minp.z..")")
-			end
-			for z = z0, z1 do -- for each column do
-				for y = y0, y1 do -- for each node do
-					local noise2 = perlin2:get3d({x=x,y=y,z=z})
-					local pers1 = PERSAV + noise2 * PERSAMP
-					local perlin1 = minetest.get_perlin(perl1.SEED1, perl1.OCTA1, pers1, perl1.SCAL1)
-					local noise1 = perlin1:get3d({x=x,y=y*SQUFAC,z=z})
-					local noise1abs = math.abs(noise1) 
-					local noise4 = perlin4:get3d({x=x,y=y*SQUFAC,z=z})
-					local noise4abs = math.abs(noise4) 
-					local noise6 = perlin6:get3d({x=x,y=y*SQUFAC,z=z})
-					local noise7 = perlin7:get3d({x=x,y=y*SQUFAC,z=z})
-					local comet = false
-					if noise6 < -(ASCOT + ATMOT) or (noise7 < -(SASCOT + ATMOT) and noise1 < ASCOT) then 
-						comet = true -- comet biome
-					end
-					if noise1abs > ASCOT or noise4abs > SASCOT then -- if below surface then
-						local noise1dep = noise1abs - ASCOT -- noise1dep zero at surface, positive beneath
-						local noise3 = perlin3:get3d({x=x,y=y,z=z})
-						if math.abs(noise3) > FISTS + noise1dep * FISEXP then -- if no fissure then
-							local noise4dep = noise4abs - SASCOT -- noise4dep zero at surface, positive beneath
-							if not comet or (comet and (noise1dep > math.random() + 0.05 or noise4dep > math.random() + 0.05)) then
-								-- asteroid or asteroid materials in comet
-								if noise1dep >= STOT or noise4dep >= STOT then
-									-- stone/ores
-									if math.random(ORECHA) == 2 then
-										local noise5 = perlin5:get3d({x=x,y=y,z=z})
-										if noise5 > 1 then
-											minetest.add_node({x=x,y=y,z=z},{name="asteroid:goldore"})
-										elseif noise5 < -1 then
-											minetest.add_node({x=x,y=y,z=z},{name="asteroid:diamondore"})
-										elseif noise5 > 0.3 then
-											minetest.add_node({x=x,y=y,z=z},{name="asteroid:meseore"})
-										elseif noise5 < -0.3 then
-											minetest.add_node({x=x,y=y,z=z},{name="asteroid:copperore"})
-										else
-											minetest.add_node({x=x,y=y,z=z},{name="asteroid:ironore"})
-										end
-									else
-										minetest.add_node({x=x,y=y,z=z},{name="asteroid:stone"})
-									end
-								elseif noise1dep >= COBT or noise4dep >= COBT then
-									minetest.add_node({x=x,y=y,z=z},{name="asteroid:cobble"})
-								elseif noise1dep >= GRAT or noise4dep >= GRAT then
-									minetest.add_node({x=x,y=y,z=z},{name="asteroid:gravel"})
-								else
-									minetest.add_node({x=x,y=y,z=z},{name="asteroid:dust"})
-								end
-							else -- comet materials
-								if noise1dep >= ICET or noise4dep >= ICET then
-									minetest.add_node({x=x,y=y,z=z},{name="asteroid:waterice"})
-								else
-									minetest.add_node({x=x,y=y,z=z},{name="asteroid:snowblock"})
-								end
+		if noise1abs > ASCOT or noise4abs > SASCOT then -- if below surface then
+			local noise1dep = noise1abs - ASCOT -- noise1dep zero at surface, positive beneath
+			if math.abs(nvals3[ni]) > FISTS + noise1dep * FISEXP then -- if no fissure then
+				local noise4dep = noise4abs - SASCOT -- noise4dep zero at surface, positive beneath
+				if not comet or (comet and (noise1dep > math.random() + ICET or noise4dep > math.random() + ICET)) then
+					-- asteroid or asteroid materials in comet
+					if noise1dep >= STOT or noise4dep >= STOT then
+						-- stone/ores
+						if math.random(ORECHA) == 2 then
+							if nvals5[ni] > 0.6 then
+								data[vi] = c_goldore
+							elseif nvals5[ni] < -0.6 then
+								data[vi] = c_diamondore
+							elseif nvals5[ni] > 0.2 then
+								data[vi] = c_meseore
+							elseif nvals5[ni] < -0.2 then
+								data[vi] = c_copperore
+							else
+								data[vi] = c_ironore
 							end
-						elseif comet then -- fissures, if comet then add comet atmosphere
-							minetest.add_node({x=x,y=y,z=z},{name="asteroid:atmos"})
+						else
+							data[vi] = c_stone
 						end
-					elseif comet then -- if comet atmosphere then
-						minetest.add_node({x=x,y=y,z=z},{name="asteroid:atmos"})
+					elseif noise1dep >= COBT or noise4dep >= COBT then
+						data[vi] = c_cobble
+					elseif noise1dep >= GRAT or noise4dep >= GRAT then
+						data[vi] = c_gravel
+					else
+						data[vi] = c_dust
+					end
+				else -- comet materials
+					if noise1dep >= ICET or noise4dep >= ICET then
+						data[vi] = c_waterice
+					else
+						data[vi] = c_snowblock
 					end
 				end
+			elseif comet then -- fissures, if comet then add comet atmosphere
+				data[vi] = c_atmos
 			end
+		elseif comet then -- if comet atmosphere then
+			data[vi] = c_atmos
 		end
-		-- craters
-		for ci = 1, CPC do -- iterate
-			local cr = math.random(CRMIN, CRMAX) -- radius
-			local cx = math.random(minp.x + cr, maxp.x - cr) -- centre x
-			local cz = math.random(minp.z + cr, maxp.z - cr) -- centre z
-			local comet = false
-			local surfy = false
-			for y = y1, y0 + cr, -1 do
-				local nodename = minetest.get_node({x=cx,y=y,z=cz}).name
-				if nodename == "asteroid:dust"
-				or nodename == "asteroid:gravel" then
-					surfy = y
-					break
-				elseif nodename == "asteroid:snow"
-				or nodename == "asteroid:ice" then
-					comet = true
-					surfy = y
-					break
-				end
-			end
-			if surfy and y1 - surfy > 8 then -- if surface found and 8 node space above impact node then
-				for x = cx - cr, cx + cr do -- for each plane do
-					for z = cz - cr, cz + cr do -- for each column do
-						for y = surfy - cr, surfy + cr do -- for each node do
-							local nr = ((x - cx) ^ 2 + (y - surfy) ^ 2 + (z - cz) ^ 2) ^ 0.5
-							if nr <= cr - 1 then
-								if comet then
-									minetest.add_node({x=x,y=y,z=z},{name="asteroid:atmos"})
-								else
-									minetest.remove_node({x=x,y=y,z=z})
-								end
-							elseif nr <= cr then
-								local nodename = minetest.get_node({x=x,y=y,z=z}).name
-								if nodename == "asteroid:cobble"
-								or nodename == "asteroid:gravel"
-								or nodename == "asteroid:stone" then
-									minetest.add_node({x=x,y=y,z=z},{name="asteroid:dust"})
-								end
-							end
-						end
-					end
-				end
-			end
-		end
-	end)
-end
+		ni = ni + 1
+	end
+	end
+	end
+	vm:set_data(data)
+	vm:set_lighting({day=0, night=0})
+	vm:calc_lighting()
+	vm:write_to_map(data)
+end)
