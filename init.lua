@@ -1,4 +1,4 @@
--- asteroid lvm/pm version 0.4.2 by paramat
+-- asteroid lvm/pm version 0.4.3 by paramat
 -- For latest stable Minetest back to 0.4.8
 -- Depends default
 -- Licenses: code WTFPL, textures CC BY SA
@@ -173,10 +173,10 @@ minetest.register_on_generated(function(minp, maxp, seed)
 	local nvals7 = minetest.get_perlin_map(np_satmos, chulens):get3dMap_flat({x=minp.x, y=minp.y, z=minp.z})
 	
 	local ni = 1
-	for z = z0, z1 do -- for each plane do
-	for y = y0, y1 do -- for each column do
+	for z = z0, z1 do -- for each vertical plane do
+	for y = y0, y1 do -- for each horizontal row do
+	local vi = area:index(x0, y, z) -- LVM index for first node in x row
 	for x = x0, x1 do -- for each node do
-		local vi = area:index(x, y, z) -- LVM index for node
 		local noise1abs = math.abs(nvals1[ni]) 
 		local noise4abs = math.abs(nvals4[ni]) 
 		local comet = false
@@ -227,6 +227,7 @@ minetest.register_on_generated(function(minp, maxp, seed)
 			data[vi] = c_atmos
 		end
 		ni = ni + 1
+		vi = vi + 1
 	end
 	end
 	end
