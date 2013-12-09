@@ -1,14 +1,18 @@
--- asteroid lvm/pm version 0.4.3 by paramat
+-- asteroid lvm/pm version 0.4.4 by paramat
 -- For latest stable Minetest back to 0.4.8
 -- Depends default
 -- Licenses: code WTFPL, textures CC BY SA
 -- For use as a stacked realm in v6, indev or v7 mapgen
 
+-- TODO
+-- Glass from dust, mese powered furnace?
+-- Hydroponics in dust, nutrient liquid from leaves and water ice
+
 -- Variables
 
-local YMIN = 11000 -- Approximate realm bottom.
-local YMAX = 13000 -- Approximate realm top.
-local XMIN = -33000 -- Approximate realm edges.
+local YMIN = 11000 -- Approximate realm limits.
+local YMAX = 13000
+local XMIN = -33000
 local XMAX = 33000
 local ZMIN = -33000
 local ZMAX = 33000
@@ -22,7 +26,10 @@ local ICET = 0.05 --  -- Comet ice threshold.
 local ATMOT = -0.2 --  -- Comet atmosphere threshold.
 local FISTS = 0.01 -- 0.01 -- Fissure noise threshold at surface. Controls size of fissures and amount / size of fissure entrances at surface.
 local FISEXP = 0.3 -- 0.3 -- Fissure expansion rate under surface.
-local ORECHA = 5*5*5 --  -- Ore 1/x chance per stone node (iron, mese ore, copper, gold, diamond).
+local ORECHA = 3*3*3 --  -- Ore 1/x chance per stone node (iron, mese ore, copper, gold, diamond).
+local CPCHU = 0 -- Maximum craters per chunk.
+local CRMIN = 5 -- Crater radius minimum, radius includes dust and obsidian layers.
+local CRRAN = 8 -- Crater radius range.
 
 -- 3D Perlin noise 1 for large structures
 
@@ -94,6 +101,7 @@ local np_satmos = {
 
 asteroid = {}
 
+local c_air
 local c_stone
 local c_cobble
 local c_gravel
@@ -138,19 +146,25 @@ minetest.register_on_generated(function(minp, maxp, seed)
 	or minp.z < ZMIN or maxp.z > ZMAX then
 		return
 	end
+	local t1 = os.clock()
 	local x1 = maxp.x
 	local y1 = maxp.y
 	local z1 = maxp.z
 	local x0 = minp.x
 	local y0 = minp.y
 	local z0 = minp.z
+	print ("[asteroid] chunk ("..x0.." "..y0.." "..z0..")")
 	local sidelen = x1 - x0 + 1 -- chunk side length
-	local vplanarea = sidelen ^ 2 -- vertical plane area, used if calculating index from x y z
+	--local vplanarea = sidelen ^ 2 -- vertical plane area, used if calculating noise index from x y z
 	local chulens = {x=sidelen, y=sidelen, z=sidelen}
+	local minpos = {x=x0, y=y0, z=z0}
 	
 	local vm, emin, emax = minetest.get_mapgen_object("voxelmanip")
 	local area = VoxelArea:new{MinEdge=emin, MaxEdge=emax}
 	local data = vm:get_data()
+	
+	c_air = minetest.get_content_id("air")
+	c_obsidian = minetest.get_content_id("default:obsidian")
 	
 	c_stone = minetest.get_content_id("asteroid:stone")
 	c_cobble = minetest.get_content_id("asteroid:cobble")
@@ -165,12 +179,12 @@ minetest.register_on_generated(function(minp, maxp, seed)
 	c_atmos = minetest.get_content_id("asteroid:atmos")
 	c_snowblock = minetest.get_content_id("asteroid:snowblock")
 	
-	local nvals1 = minetest.get_perlin_map(np_large, chulens):get3dMap_flat({x=minp.x, y=minp.y, z=minp.z})
-	local nvals3 = minetest.get_perlin_map(np_fissure, chulens):get3dMap_flat({x=minp.x, y=minp.y, z=minp.z})
-	local nvals4 = minetest.get_perlin_map(np_small, chulens):get3dMap_flat({x=minp.x, y=minp.y, z=minp.z})
-	local nvals5 = minetest.get_perlin_map(np_ores, chulens):get3dMap_flat({x=minp.x, y=minp.y, z=minp.z})
-	local nvals6 = minetest.get_perlin_map(np_latmos, chulens):get3dMap_flat({x=minp.x, y=minp.y, z=minp.z})
-	local nvals7 = minetest.get_perlin_map(np_satmos, chulens):get3dMap_flat({x=minp.x, y=minp.y, z=minp.z})
+	local nvals1 = minetest.get_perlin_map(np_large, chulens):get3dMap_flat(minpos)
+	local nvals3 = minetest.get_perlin_map(np_fissure, chulens):get3dMap_flat(minpos)
+	local nvals4 = minetest.get_perlin_map(np_small, chulens):get3dMap_flat(minpos)
+	local nvals5 = minetest.get_perlin_map(np_ores, chulens):get3dMap_flat(minpos)
+	local nvals6 = minetest.get_perlin_map(np_latmos, chulens):get3dMap_flat(minpos)
+	local nvals7 = minetest.get_perlin_map(np_satmos, chulens):get3dMap_flat(minpos)
 	
 	local ni = 1
 	for z = z0, z1 do -- for each vertical plane do
@@ -231,8 +245,68 @@ minetest.register_on_generated(function(minp, maxp, seed)
 	end
 	end
 	end
+	-- craters
+	for ci = 1, CPCHU do -- iterate
+		local cr = CRMIN + math.floor(math.random() ^ 2 * CRRAN) -- exponential radius
+		local cx = math.random(minp.x + cr, maxp.x - cr) -- centre x
+		local cz = math.random(minp.z + cr, maxp.z - cr) -- centre z
+		local comet = false
+		local surfy = false
+		for y = y1, y0 + cr, -1 do
+			local vi = area:index(cx, y, cz) -- LVM index for node
+			local nodeid = data[vi]
+			if nodeid == c_dust
+			or nodeid == c_gravel
+			or nodeid == c_cobble then
+				surfy = y
+				break
+			elseif nodename == c_snowblock
+			or nodename == c_waterice then
+				comet = true
+				surfy = y
+				break
+			end
+		end
+		if surfy and y1 - surfy > 8 then -- if surface found and 8 node space above impact node then
+			for x = cx - cr, cx + cr do -- for each plane do
+				for z = cz - cr, cz + cr do -- for each column do
+					for y = surfy - cr, surfy + cr do -- for each node do
+						local vi = area:index(x, y, z) -- LVM index for node
+						local nr = ((x - cx) ^ 2 + (y - surfy) ^ 2 + (z - cz) ^ 2) ^ 0.5
+						if nr <= cr - 2 then
+							if comet then
+								data[vi] = c_atmos
+							else
+								data[vi] = c_air
+							end
+						elseif nr <= cr - 1 then
+							local nodeid = data[vi]
+							if nodeid == c_gravel
+							or nodeid == c_cobble
+							or nodeid == c_stone
+							or nodeid == c_diamondore
+							or nodeid == c_goldore
+							or nodeid == c_meseore
+							or nodeid == c_copperore
+							or nodeid == c_ironore then
+								data[vi] = c_dust
+							end
+						elseif nr <= cr then
+							local nodeid = data[vi]
+							if nodeid == c_cobble
+							or nodeid == c_stone then
+								data[vi] = c_obsidian -- obsidian buried under dust
+							end
+						end
+					end
+				end
+			end
+		end
+	end
 	vm:set_data(data)
 	vm:set_lighting({day=0, night=0})
 	vm:calc_lighting()
 	vm:write_to_map(data)
+	local chugent = math.ceil((os.clock() - t1) * 1000)
+	print ("[asteroid] time "..chugent.." ms")
 end)

@@ -80,9 +80,10 @@ minetest.register_node("asteroid:waterice", {
 })
 
 minetest.register_node("asteroid:atmos", {
+	description = "AST Atmosphere",
 	drawtype = "glasslike",
 	tiles = {"asteroid_atmos.png"},
-	alpha = 0,
+	alpha = 0, -- disable this line for opaque atmosphere and higher FPS
 	paramtype = "light",
 	sunlight_propagates = true,
 	walkable = false,
@@ -103,14 +104,39 @@ minetest.register_node("asteroid:snowblock", {
 })
 
 minetest.register_node("asteroid:stonebrick", {
-	description = "Asteroid Stone Brick",
+	description = "AST Stone Brick",
 	tiles = {"asteroid_stonebricktop.png", "asteroid_stonebrickbot.png", "asteroid_stonebrick.png"},
 	groups = {cracky=3},
 	sounds = default.node_sound_stone_defaults(),
 })
 
+
+minetest.register_node("asteroid:stonestair", {
+	description = "AST Stone Stair",
+	tiles = {"asteroid_stonebricktop.png", "asteroid_stonebrickbot.png", "asteroid_stonebrick.png"},
+	drawtype = "nodebox",
+	paramtype = "light",
+	paramtype2 = "facedir",
+	groups = {cracky=3},
+	node_box = {
+		type = "fixed",
+		fixed = {
+			{-0.5, -0.5, -0.5, 0.5, 0, 0.5},
+			{-0.5, 0, 0, 0.5, 0.5, 0.5},
+		},
+	},
+	selection_box = {
+		type = "fixed",
+		fixed = {
+			{-0.5, -0.5, -0.5, 0.5, 0, 0.5},
+			{-0.5, 0, 0, 0.5, 0.5, 0.5},
+		},
+	},
+	sounds = default.node_sound_stone_defaults(),
+})
+
 minetest.register_node("asteroid:stoneslab", {
-	description = "Asteroid Stone Slab",
+	description = "AST Stone Slab",
 	tiles = {"asteroid_stonebricktop.png", "asteroid_stonebrickbot.png", "asteroid_stonebrick.png"},
 	drawtype = "nodebox",
 	paramtype = "light",
@@ -159,6 +185,14 @@ minetest.register_craft({
 	output = "asteroid:stonebrick 4",
 	recipe = {
 		{"asteroid:stone", "asteroid:stone"},
+		{"asteroid:stone", "asteroid:stone"},
+	}
+})
+
+minetest.register_craft({
+	output = "asteroid:stonestair 4",
+	recipe = {
+		{"asteroid:stone", ""},
 		{"asteroid:stone", "asteroid:stone"},
 	}
 })
