@@ -1,9 +1,10 @@
-asteroid lvm/pm version 0.4.4 by paramat
-For latest stable Minetest back to 0.4.8
+asteroid 0.5.0 by paramat
+For Minetest 0.4.13 and later
 Depends default
-Licenses: code WTFPL, textures CC BY-SA
-For use as a stacked realm in v6, indev or v7 mapgen
+Licenses: Code MIT. Media (textures) CC BY-SA 3.0
+See license.txt for license information
 
+Suitable for use as a stacked realm that adds to core mapgen.
 A realm of asteroids and comets is created in the volume chosen by parameters.
 2 perlin noises of differing scales create interpenetrating large and small structures.
 
@@ -18,7 +19,6 @@ The atmosphere has a smoother shape than the comet it surrounds.
 Comet ice and snow can be crafted to default:water_source.
 
 Both have weblike 'fissure' cave systems.
-
 Craters have obsidian buried under the dust, formed by impact energy.
 
 Crafting

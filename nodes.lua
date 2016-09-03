@@ -3,39 +3,44 @@
 minetest.register_node("asteroid:stone", {
 	description = "AST Stone",
 	tiles = {"asteroid_stone.png"},
-	groups = {cracky=3},
+	is_ground_content = false,
+	groups = {cracky = 3},
 	sounds = default.node_sound_stone_defaults(),
 })
 
 minetest.register_node("asteroid:cobble", {
 	description = "AST Cobble",
 	tiles = {"asteroid_cobble.png"},
-	groups = {cracky=3},
+	is_ground_content = false,
+	groups = {cracky = 3},
 	sounds = default.node_sound_stone_defaults(),
 })
 
 minetest.register_node("asteroid:gravel", {
 	description = "AST gravel",
 	tiles = {"asteroid_gravel.png"},
-	groups = {crumbly=2},
+	is_ground_content = false,
+	groups = {crumbly = 2},
 	sounds = default.node_sound_dirt_defaults({
-		footstep = {name="default_gravel_footstep", gain=0.2},
+		footstep = {name = "default_gravel_footstep", gain = 0.2},
 	}),
 })
 
 minetest.register_node("asteroid:dust", {
 	description = "AST Dust",
 	tiles = {"asteroid_dust.png"},
-	groups = {crumbly=3},
+	is_ground_content = false,
+	groups = {crumbly = 3},
 	sounds = default.node_sound_dirt_defaults({
-		footstep = {name="default_gravel_footstep", gain=0.1},
+		footstep = {name = "default_gravel_footstep", gain = 0.1},
 	}),
 })
 
 minetest.register_node("asteroid:ironore", {
 	description = "AST Iron Ore",
 	tiles = {"asteroid_stone.png^default_mineral_iron.png"},
-	groups = {cracky=2},
+	is_ground_content = false,
+	groups = {cracky = 2},
 	drop = "default:iron_lump",
 	sounds = default.node_sound_stone_defaults(),
 })
@@ -43,7 +48,8 @@ minetest.register_node("asteroid:ironore", {
 minetest.register_node("asteroid:copperore", {
 	description = "AST Copper Ore",
 	tiles = {"asteroid_stone.png^default_mineral_copper.png"},
-	groups = {cracky=2},
+	is_ground_content = false,
+	groups = {cracky = 2},
 	drop = "default:copper_lump",
 	sounds = default.node_sound_stone_defaults(),
 })
@@ -51,7 +57,8 @@ minetest.register_node("asteroid:copperore", {
 minetest.register_node("asteroid:goldore", {
 	description = "AST Gold Ore",
 	tiles = {"asteroid_stone.png^default_mineral_gold.png"},
-	groups = {cracky=2},
+	is_ground_content = false,
+	groups = {cracky = 2},
 	drop = "default:gold_lump",
 	sounds = default.node_sound_stone_defaults(),
 })
@@ -59,7 +66,8 @@ minetest.register_node("asteroid:goldore", {
 minetest.register_node("asteroid:diamondore", {
 	description = "AST Diamond Ore",
 	tiles = {"asteroid_stone.png^default_mineral_diamond.png"},
-	groups = {cracky=1},
+	is_ground_content = false,
+	groups = {cracky = 1},
 	drop = "default:diamond",
 	sounds = default.node_sound_stone_defaults(),
 })
@@ -67,15 +75,17 @@ minetest.register_node("asteroid:diamondore", {
 minetest.register_node("asteroid:meseore", {
 	description = "AST Mese Ore",
 	tiles = {"asteroid_stone.png^default_mineral_mese.png"},
-	groups = {cracky=1},
+	is_ground_content = false,
+	groups = {cracky = 1},
 	drop = "default:mese_crystal",
 	sounds = default.node_sound_stone_defaults(),
 })
 
 minetest.register_node("asteroid:waterice", {
 	description = "AST Water Ice",
-	tiles = {"asteroid_waterice.png"},
-	groups = {cracky=3,melts=1},
+	tiles = {"default_ice.png"},
+	is_ground_content = false,
+	groups = {cracky = 3},
 	sounds = default.node_sound_stone_defaults(),
 })
 
@@ -83,41 +93,48 @@ minetest.register_node("asteroid:atmos", {
 	description = "AST Atmosphere",
 	drawtype = "glasslike",
 	tiles = {"asteroid_atmos.png"},
-	alpha = 0, -- disable this line for opaque atmosphere and higher FPS
 	paramtype = "light",
 	sunlight_propagates = true,
 	walkable = false,
 	pointable = false,
 	diggable = false,
 	buildable_to = true,
-	post_effect_color = {a=23, r=241, g=248, b=255},
-	groups = {not_in_creative_inventory=1},
+	is_ground_content = false,
+	post_effect_color = {a = 31, r = 241, g = 248, b = 255},
+	groups = {not_in_creative_inventory = 1},
 })
 
 minetest.register_node("asteroid:snowblock", {
 	description = "AST Snow Block",
-	tiles = {"asteroid_snowblock.png"},
-	groups = {crumbly=3,melts=2},
+	tiles = {"default_snow.png"},
+	is_ground_content = false,
+	groups = {crumbly = 3},
 	sounds = default.node_sound_dirt_defaults({
-		footstep = {name="default_gravel_footstep", gain=0.2},
+		footstep = {name = "default_snow_footstep", gain = 0.15},
+		dug = {name = "default_snow_footstep", gain = 0.2},
+		dig = {name = "default_snow_footstep", gain = 0.2}
 	}),
 })
 
 minetest.register_node("asteroid:stonebrick", {
 	description = "AST Stone Brick",
-	tiles = {"asteroid_stonebricktop.png", "asteroid_stonebrickbot.png", "asteroid_stonebrick.png"},
-	groups = {cracky=3},
+	tiles = {"asteroid_stonebricktop.png", "asteroid_stonebrickbot.png",
+			"asteroid_stonebrick.png"},
+	is_ground_content = false,
+	groups = {cracky = 3},
 	sounds = default.node_sound_stone_defaults(),
 })
 
 
 minetest.register_node("asteroid:stonestair", {
 	description = "AST Stone Stair",
-	tiles = {"asteroid_stonebricktop.png", "asteroid_stonebrickbot.png", "asteroid_stonebrick.png"},
+	tiles = {"asteroid_stonebricktop.png", "asteroid_stonebrickbot.png",
+			"asteroid_stonebrick.png"},
 	drawtype = "nodebox",
 	paramtype = "light",
 	paramtype2 = "facedir",
-	groups = {cracky=3},
+	is_ground_content = false,
+	groups = {cracky = 3},
 	node_box = {
 		type = "fixed",
 		fixed = {
@@ -137,11 +154,13 @@ minetest.register_node("asteroid:stonestair", {
 
 minetest.register_node("asteroid:stoneslab", {
 	description = "AST Stone Slab",
-	tiles = {"asteroid_stonebricktop.png", "asteroid_stonebrickbot.png", "asteroid_stonebrick.png"},
+	tiles = {"asteroid_stonebricktop.png", "asteroid_stonebrickbot.png",
+			"asteroid_stonebrick.png"},
 	drawtype = "nodebox",
 	paramtype = "light",
 	sunlight_propagates = true,
 	buildable_to = true,
+	is_ground_content = false,
 	node_box = {
 		type = "fixed",
 		fixed = {
@@ -154,7 +173,7 @@ minetest.register_node("asteroid:stoneslab", {
 			{-0.5, -0.5, -0.5, 0.5, 0, 0.5}
 		},
 	},
-	groups = {cracky=3},
+	groups = {cracky = 3},
 	sounds = default.node_sound_stone_defaults(),
 })
 
