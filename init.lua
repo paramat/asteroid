@@ -117,22 +117,9 @@ local c_snowblock = minetest.get_content_id("asteroid:snowblock")
 -- On dignode function. Atmosphere flows into a dug hole.
 
 minetest.register_on_dignode(function(pos, oldnode, digger)
-	local x = pos.x
-	local y = pos.y
-	local z = pos.z
 
-	for i = -1, 1 do
-	for j = -1, 1 do
-	for k = -1, 1 do
-		if not (i == 0 and j == 0 and k == 0) then
-			local nodename = minetest.get_node({x = x + i, y = y + j, z = z + k}).name
-			if nodename == "asteroid:atmos" then	
-				minetest.add_node(pos, {name = "asteroid:atmos"})
-				return
-			end
-		end
-	end
-	end
+	if minetest.find_node_near(pos, 1, {"asteroid:atmos"}) then
+		minetest.set_node(pos, {name = "asteroid:atmos"})
 	end
 end)
 
