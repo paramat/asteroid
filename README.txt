@@ -1,5 +1,5 @@
-asteroid 0.5.0 by paramat
-For Minetest 0.4.13 and later
+asteroid 0.5.1 by paramat
+For Minetest 0.4.14 and later
 Depends default
 Licenses: Code MIT. Media (textures) CC BY-SA 3.0
 See license.txt for license information

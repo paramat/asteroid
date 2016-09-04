@@ -1,14 +1,13 @@
 -- Parameters
 
-local YMIN = 11000
-local YMAX = 13000
-local XMIN = -33000
-local XMAX = 33000
-local ZMIN = -33000
-local ZMAX = 33000
+local YMIN = 16000
+local YMAX = 20000
+local XMIN = -31000
+local XMAX = 31000
+local ZMIN = -31000
+local ZMAX = 31000
 
-local ASCOT = 1.0 -- Large asteroid / comet nucleus noise threshold.
-local SASCOT = 1.0 -- Small asteroid / comet nucleus noise threshold.
+local ASCOT = 1.0 -- Asteroid / comet nucleus noise threshold.
 local STOT = 0.125 -- Asteroid stone threshold.
 local COBT = 0.05 -- Asteroid cobble threshold.
 local GRAT = 0.02 -- Asteroid gravel threshold.
@@ -18,34 +17,30 @@ local FISTS = 0.01 -- Fissure noise threshold at surface. Controls size of fissu
 					-- and amount / size of fissure entrances at surface.
 local FISEXP = 0.3 -- Fissure expansion rate under surface.
 local ORECHA = 3 * 3 * 3 -- Ore 1/x chance per stone node.
-local CPCHU = 1 -- Maximum craters per chunk.
-local CRMIN = 5 -- Crater radius minimum, radius includes dust and obsidian layers.
+
+local CPCHU = 8 -- Maximum craters per chunk.
+local CRMIN = 4 -- Crater radius minimum, radius includes dust and obsidian layers.
 local CRRAN = 8 -- Crater radius range.
+
+local SPAJ = 1 -- Space jump (1 = normal)
+local SPAG = 0.1 -- Space gravity (1 = normal)
+
 local DEBUG = false
 
--- 3D Perlin noise 1 for large structures
+-- 3D Perlin noise for large structures
 
 local np_large = {
 	offset = 0,
 	scale = 1,
-	spread = {x = 256, y = 128, z = 256},
+	spread = {x = 192, y = 192, z = 192},
 	seed = -83928935,
-	octaves = 5,
-	persist = 0.6
-}
-
--- 3D Perlin noise 4 for small structures
-
-local np_small = {
-	offset = 0,
-	scale = 1,
-	spread = {x = 128, y = 64, z = 128},
-	seed = 1000760700090,
 	octaves = 4,
-	persist = 0.6
+	persist = 0.6,
+	lacunarity = 2.0,
+	--flags = ""
 }
 
--- 3D Perlin noise 3 for fissures
+-- 3D Perlin noise for fissures
 
 local np_fissure = {
 	offset = 0,
@@ -53,10 +48,12 @@ local np_fissure = {
 	spread = {x = 64, y = 64, z = 64},
 	seed = -188881,
 	octaves = 3,
-	persist = 0.5
+	persist = 0.5,
+	lacunarity = 2.0,
+	--flags = ""
 }
 
--- 3D Perlin noise 5 for ore selection
+-- 3D Perlin noise for ore selection
 
 local np_ores = {
 	offset = 0,
@@ -64,29 +61,22 @@ local np_ores = {
 	spread = {x = 128, y = 128, z = 128},
 	seed = -70242,
 	octaves = 1,
-	persist = 0.5
+	persist = 0.5,
+	lacunarity = 2.0,
+	--flags = ""
 }
 
--- 3D Perlin noise 6 for comet atmosphere
+-- 3D Perlin noise for comet atmosphere
 
-local np_latmos = {
+local np_atmos = {
 	offset = 0,
 	scale = 1,
-	spread = {x = 256, y = 128, z = 256},
+	spread = {x = 192, y = 192, z = 192},
 	seed = -83928935,
 	octaves = 3,
-	persist = 0.6
-}
-
--- 3D Perlin noise 7 for small comet atmosphere
-
-local np_satmos = {
-	offset = 0,
-	scale = 1,
-	spread = {x = 128, y = 64, z = 128},
-	seed = 1000760700090,
-	octaves = 2,
-	persist = 0.6
+	persist = 0.6,
+	lacunarity = 2.0,
+	flags = "eased"
 }
 
 
@@ -97,8 +87,7 @@ dofile(minetest.get_modpath("asteroid").."/nodes.lua")
 
 -- Constants
 
-local c_air = minetest.get_content_id("air")
-local c_obsidian = minetest.get_content_id("default:obsidian")
+local c_air = minetest.CONTENT_AIR
 	
 local c_stone = minetest.get_content_id("asteroid:stone")
 local c_cobble = minetest.get_content_id("asteroid:cobble")
@@ -137,24 +126,49 @@ minetest.register_on_dignode(function(pos, oldnode, digger)
 end)
 
 
+-- Globalstep function for skybox, physics override, light override
+
+local skybox_space = {
+	"asteroid_skybox_ypos.png",
+	"asteroid_skybox.png",
+	"asteroid_skybox.png",
+	"asteroid_skybox.png",
+	"asteroid_skybox.png",
+	"asteroid_skybox.png"
+}
+
+minetest.register_globalstep(function(dtime)
+	for _, player in ipairs(minetest.get_connected_players()) do
+		if math.random() < 0.03 then -- set gravity, skybox and override light
+			local ppos = player:getpos()
+			if ppos.y < YMIN or ppos.y > YMAX then -- normal
+				player:set_physics_override(1, 1, 1) -- speed, jump, gravity
+				player:set_sky({}, "regular", {})
+				player:override_day_night_ratio(nil)
+			else -- space
+				player:set_physics_override(1, SPAJ, SPAG) -- speed, jump, gravity
+				player:set_sky({r = 0, g = 0, b = 0, a = 0}, "skybox", skybox_space)
+				player:override_day_night_ratio(1)
+			end
+		end
+	end
+end)
+
+
 -- Initialise noise objects to nil
 
 local nobj_large = nil
-local nobj_small = nil
 local nobj_fissure = nil
 local nobj_ores = nil
-local nobj_latmos = nil
-local nobj_satmos = nil
+local nobj_atmos = nil
 
 
 -- Localise noise buffers
 
 local nbuf_large
-local nbuf_small
 local nbuf_fissure
 local nbuf_ores
-local nbuf_latmos
-local nbuf_satmos
+local nbuf_atmos
 
 
 -- On generated function
@@ -180,18 +194,14 @@ minetest.register_on_generated(function(minp, maxp, seed)
 	local minpos = {x = x0, y = y0, z = z0}
 	
 	nobj_large   = nobj_large   or minetest.get_perlin_map(np_large,   chulens)
-	nobj_small   = nobj_small   or minetest.get_perlin_map(np_small,   chulens)
 	nobj_fissure = nobj_fissure or minetest.get_perlin_map(np_fissure, chulens)
 	nobj_ores    = nobj_ores    or minetest.get_perlin_map(np_ores,    chulens)
-	nobj_latmos  = nobj_latmos  or minetest.get_perlin_map(np_latmos,  chulens)
-	nobj_satmos  = nobj_satmos  or minetest.get_perlin_map(np_satmos,  chulens)
+	nobj_atmos   = nobj_atmos   or minetest.get_perlin_map(np_atmos,   chulens)
 	
 	local nvals_large   = nobj_large  :get3dMap_flat(minpos, nbuf_large)
-	local nvals_small   = nobj_small  :get3dMap_flat(minpos, nbuf_small)
 	local nvals_fissure = nobj_fissure:get3dMap_flat(minpos, nbuf_fissure)
 	local nvals_ores    = nobj_ores   :get3dMap_flat(minpos, nbuf_ores)
-	local nvals_latmos  = nobj_latmos :get3dMap_flat(minpos, nbuf_latmos)
-	local nvals_satmos  = nobj_satmos :get3dMap_flat(minpos, nbuf_satmos)
+	local nvals_atmos   = nobj_atmos  :get3dMap_flat(minpos, nbuf_atmos)
 
 	local vm, emin, emax = minetest.get_mapgen_object("voxelmanip")
 	local area = VoxelArea:new{MinEdge = emin, MaxEdge = emax}
@@ -202,33 +212,29 @@ minetest.register_on_generated(function(minp, maxp, seed)
 	for y = y0, y1 do
 		local vi = area:index(x0, y, z)
 		for x = x0, x1 do
-			local nabs_large = math.abs(nvals_large[ni])
-			local nabs_small = math.abs(nvals_small[ni])
-			local comet = false
-			if nvals_latmos[ni] < -(ASCOT + ATMOT) or
-					(nvals_satmos[ni] < -(SASCOT + ATMOT) and
-					nvals_large[ni] < ASCOT) then 
-				comet = true -- comet biome
-			end
+			local n_large = nvals_large[ni]
+			local nabs_large = math.abs(n_large)
+			local atmos = (nvals_atmos[ni]) < -(ASCOT + ATMOT) -- comet atmosphere volume
 
-			if nabs_large > ASCOT or nabs_small > SASCOT then -- if below surfaces
+			if nabs_large > ASCOT then -- if below surface
+				local comet = n_large < -ASCOT
 				local nlargedep = nabs_large - ASCOT -- zero at surface, positive beneath
 				if math.abs(nvals_fissure[ni]) > FISTS + nlargedep * FISEXP then
 					-- no fissure
-					local nsmalldep = nabs_small - SASCOT
-					if not comet or (comet and (nlargedep > math.random() + ICET or
-							nsmalldep > math.random() + ICET)) then
+					if not comet or
+							(comet and nlargedep > (math.random() / 2) + ICET) then
 						-- asteroid or asteroid materials in comet
-						if nlargedep >= STOT or nsmalldep >= STOT then
+						if nlargedep >= STOT then
 							-- stone/ores
+							local n_ores = nvals_ores[ni]
 							if math.random(ORECHA) == 2 then
-								if nvals_ores[ni] > 0.6 then
+								if n_ores > 0.6 then
 									data[vi] = c_goldore
-								elseif nvals_ores[ni] < -0.6 then
+								elseif n_ores < -0.6 then
 									data[vi] = c_diamondore
-								elseif nvals_ores[ni] > 0.2 then
+								elseif n_ores > 0.2 then
 									data[vi] = c_meseore
-								elseif nvals_ores[ni] < -0.2 then
+								elseif n_ores < -0.2 then
 									data[vi] = c_copperore
 								else
 									data[vi] = c_ironore
@@ -236,24 +242,24 @@ minetest.register_on_generated(function(minp, maxp, seed)
 							else
 								data[vi] = c_stone
 							end
-						elseif nlargedep >= COBT or nsmalldep >= COBT then
+						elseif nlargedep >= COBT then
 							data[vi] = c_cobble
-						elseif nlargedep >= GRAT or nsmalldep >= GRAT then
+						elseif nlargedep >= GRAT then
 							data[vi] = c_gravel
 						else
 							data[vi] = c_dust
 						end
 					else -- comet materials
-						if nlargedep >= ICET or nsmalldep >= ICET then
+						if nlargedep >= ICET then
 							data[vi] = c_waterice
 						else
 							data[vi] = c_snowblock
 						end
 					end
-				elseif comet then -- fissures, if comet then add comet atmosphere
+				elseif atmos then -- fissures, if comet then add comet atmosphere
 					data[vi] = c_atmos
 				end
-			elseif comet then -- if comet atmosphere then
+			elseif atmos then -- if comet atmosphere then
 				data[vi] = c_atmos
 			end
 
@@ -264,61 +270,62 @@ minetest.register_on_generated(function(minp, maxp, seed)
 	end
 	-- craters
 	for ci = 1, CPCHU do -- iterate
-		local cr = CRMIN + math.floor(math.random() ^ 2 * CRRAN) -- exponential radius
-		local cx = math.random(minp.x + cr, maxp.x - cr) -- centre x
-		local cz = math.random(minp.z + cr, maxp.z - cr) -- centre z
+		local cr = math.floor(CRMIN + math.random() ^ 2 * CRRAN) -- exponential radius
+		local cx = math.random(x0 + cr, x1 - cr) -- centre x
+		local cz = math.random(z0 + cr, z1 - cr) -- centre z
 		local comet = false
 		local surfy = false
+		local count = 0
 
 		for y = y1, y0 + cr, -1 do
 			local vi = area:index(cx, y, cz)
 			local nodeid = data[vi]
-			if nodeid == c_dust
+			if nodeid == c_air or nodeid == c_atmos then
+				count = count + 1
+			elseif count > cr and (nodeid == c_dust
 					or nodeid == c_gravel
-					or nodeid == c_cobble then
+					or nodeid == c_cobble) then
 				surfy = y
 				break
-			elseif nodeid == c_snowblock
-					or nodeid == c_waterice then
+			elseif count > cr and (nodeid == c_snowblock
+					or nodeid == c_waterice) then
 				comet = true
 				surfy = y
 				break
+			else
+				count = 0
 			end
 		end
 
-		if surfy and y1 - surfy > 8 then -- if surface found and 8 node space above
+		if surfy then
 			for x = cx - cr, cx + cr do
-				for z = cz - cr, cz + cr do
-					for y = surfy - cr, surfy + cr do
-						local vi = area:index(x, y, z)
-						local nr = ((x - cx) ^ 2 + (y - surfy) ^ 2 + (z - cz) ^ 2) ^ 0.5
-						if nr <= cr - 2 then
-							if comet then
-								data[vi] = c_atmos
-							else
-								data[vi] = c_air
-							end
-						elseif nr <= cr - 1 then
-							local nodeid = data[vi]
-							if nodeid == c_gravel
-									or nodeid == c_cobble
-									or nodeid == c_stone
-									or nodeid == c_diamondore
-									or nodeid == c_goldore
-									or nodeid == c_meseore
-									or nodeid == c_copperore
-									or nodeid == c_ironore then
-								data[vi] = c_dust
-							end
-						elseif nr <= cr then
-							local nodeid = data[vi]
-							if nodeid == c_cobble
-									or nodeid == c_stone then
-								data[vi] = c_obsidian -- obsidian buried under dust
-							end
+			for z = cz - cr, cz + cr do
+			for y = surfy - cr, surfy + cr do
+				local vi = area:index(x, y, z)
+				local nr = ((x - cx) ^ 2 + (y - surfy) ^ 2 + (z - cz) ^ 2) ^ 0.5
+				if nr < cr - 1 then
+					local nodeid = data[vi]
+					if nodeid ~= c_atmos
+							and nodeid ~= c_air then
+						if comet then
+							data[vi] = c_atmos
+						else
+							data[vi] = c_air
+						end
+					end
+				elseif nr < cr then
+					local nodeid = data[vi]
+					if nodeid ~= c_atmos
+							and nodeid ~= c_air then
+						if comet then
+							data[vi] = c_snowblock
+						else
+							data[vi] = c_dust
 						end
 					end
 				end
+			end
+			end
 			end
 		end
 	end

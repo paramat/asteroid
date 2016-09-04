@@ -1,7 +1,7 @@
 -- Nodes
 
 minetest.register_node("asteroid:stone", {
-	description = "AST Stone",
+	description = "Asteroid Stone",
 	tiles = {"asteroid_stone.png"},
 	is_ground_content = false,
 	groups = {cracky = 3},
@@ -9,7 +9,7 @@ minetest.register_node("asteroid:stone", {
 })
 
 minetest.register_node("asteroid:cobble", {
-	description = "AST Cobble",
+	description = "Asteroid Cobble",
 	tiles = {"asteroid_cobble.png"},
 	is_ground_content = false,
 	groups = {cracky = 3},
@@ -17,7 +17,7 @@ minetest.register_node("asteroid:cobble", {
 })
 
 minetest.register_node("asteroid:gravel", {
-	description = "AST gravel",
+	description = "Asteroid gravel",
 	tiles = {"asteroid_gravel.png"},
 	is_ground_content = false,
 	groups = {crumbly = 2},
@@ -27,7 +27,7 @@ minetest.register_node("asteroid:gravel", {
 })
 
 minetest.register_node("asteroid:dust", {
-	description = "AST Dust",
+	description = "Asteroid Dust",
 	tiles = {"asteroid_dust.png"},
 	is_ground_content = false,
 	groups = {crumbly = 3},
@@ -37,7 +37,7 @@ minetest.register_node("asteroid:dust", {
 })
 
 minetest.register_node("asteroid:ironore", {
-	description = "AST Iron Ore",
+	description = "Asteroid Iron Ore",
 	tiles = {"asteroid_stone.png^default_mineral_iron.png"},
 	is_ground_content = false,
 	groups = {cracky = 2},
@@ -46,7 +46,7 @@ minetest.register_node("asteroid:ironore", {
 })
 
 minetest.register_node("asteroid:copperore", {
-	description = "AST Copper Ore",
+	description = "Asteroid Copper Ore",
 	tiles = {"asteroid_stone.png^default_mineral_copper.png"},
 	is_ground_content = false,
 	groups = {cracky = 2},
@@ -55,7 +55,7 @@ minetest.register_node("asteroid:copperore", {
 })
 
 minetest.register_node("asteroid:goldore", {
-	description = "AST Gold Ore",
+	description = "Asteroid Gold Ore",
 	tiles = {"asteroid_stone.png^default_mineral_gold.png"},
 	is_ground_content = false,
 	groups = {cracky = 2},
@@ -64,7 +64,7 @@ minetest.register_node("asteroid:goldore", {
 })
 
 minetest.register_node("asteroid:diamondore", {
-	description = "AST Diamond Ore",
+	description = "Asteroid Diamond Ore",
 	tiles = {"asteroid_stone.png^default_mineral_diamond.png"},
 	is_ground_content = false,
 	groups = {cracky = 1},
@@ -73,7 +73,7 @@ minetest.register_node("asteroid:diamondore", {
 })
 
 minetest.register_node("asteroid:meseore", {
-	description = "AST Mese Ore",
+	description = "Asteroid Mese Ore",
 	tiles = {"asteroid_stone.png^default_mineral_mese.png"},
 	is_ground_content = false,
 	groups = {cracky = 1},
@@ -82,7 +82,7 @@ minetest.register_node("asteroid:meseore", {
 })
 
 minetest.register_node("asteroid:waterice", {
-	description = "AST Water Ice",
+	description = "Comet Water Ice",
 	tiles = {"default_ice.png"},
 	is_ground_content = false,
 	groups = {cracky = 3},
@@ -90,7 +90,7 @@ minetest.register_node("asteroid:waterice", {
 })
 
 minetest.register_node("asteroid:atmos", {
-	description = "AST Atmosphere",
+	description = "Comet Atmosphere",
 	drawtype = "glasslike",
 	tiles = {"asteroid_atmos.png"},
 	paramtype = "light",
@@ -105,7 +105,7 @@ minetest.register_node("asteroid:atmos", {
 })
 
 minetest.register_node("asteroid:snowblock", {
-	description = "AST Snow Block",
+	description = "Comet Snow Block",
 	tiles = {"default_snow.png"},
 	is_ground_content = false,
 	groups = {crumbly = 3},
@@ -117,7 +117,7 @@ minetest.register_node("asteroid:snowblock", {
 })
 
 minetest.register_node("asteroid:stonebrick", {
-	description = "AST Stone Brick",
+	description = "Asteroid Stone Brick",
 	tiles = {"asteroid_stonebricktop.png", "asteroid_stonebrickbot.png",
 			"asteroid_stonebrick.png"},
 	is_ground_content = false,
@@ -127,7 +127,7 @@ minetest.register_node("asteroid:stonebrick", {
 
 
 minetest.register_node("asteroid:stonestair", {
-	description = "AST Stone Stair",
+	description = "Asteroid Stone Stair",
 	tiles = {"asteroid_stonebricktop.png", "asteroid_stonebrickbot.png",
 			"asteroid_stonebrick.png"},
 	drawtype = "nodebox",
@@ -153,7 +153,7 @@ minetest.register_node("asteroid:stonestair", {
 })
 
 minetest.register_node("asteroid:stoneslab", {
-	description = "AST Stone Slab",
+	description = "Asteroid Stone Slab",
 	tiles = {"asteroid_stonebricktop.png", "asteroid_stonebrickbot.png",
 			"asteroid_stonebrick.png"},
 	drawtype = "nodebox",
